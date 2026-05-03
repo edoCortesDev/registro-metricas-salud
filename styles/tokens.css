@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Light mode (default) */
+:root {
+  --color-bg:          #ffffff;
+  --color-bg-alt:      #f4f4f4;
+  --color-text:        #111111;
+  --color-text-muted:  #666666;
+  --color-primary:     #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-secondary:   #10b981;
+  --color-danger:      #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-border:      #e5e7eb;
+  --color-success:     #10b981;
+  --color-warning:     #f59e0b;
+
+  --radius:            0.75rem;
+  --radius-sm:         0.375rem;
+  --font-base:         'Inter', system-ui, sans-serif;
+
+  --shadow-sm:         0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow:            0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md:         0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+  --nav-height:        64px;
+  --transition:        0.2s ease;
+}
+
+/* Dark mode (manual override) */
+[data-theme="dark"] {
+  --color-bg:          #0f172a;
+  --color-bg-alt:      #1e293b;
+  --color-text:        #f1f5f9;
+  --color-text-muted:  #94a3b8;
+  --color-border:      #334155;
+  --color-primary-hover: #60a5fa;
+  --shadow-sm:         0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow:            0 1px 3px 0 rgb(0 0 0 / 0.4);
+  --shadow-md:         0 4px 6px -1px rgb(0 0 0 / 0.4);
+}
+
+/* Auto dark mode (respects OS preference, unless user forced light) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg:          #0f172a;
+    --color-bg-alt:      #1e293b;
+    --color-text:        #f1f5f9;
+    --color-text-muted:  #94a3b8;
+    --color-border:      #334155;
+    --color-primary-hover: #60a5fa;
+    --shadow-sm:         0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow:            0 1px 3px 0 rgb(0 0 0 / 0.4);
+    --shadow-md:         0 4px 6px -1px rgb(0 0 0 / 0.4);
+  }
+}

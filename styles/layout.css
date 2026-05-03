@@ -1,0 +1,51 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.app__view {
+  flex: 1;
+  padding: 1.25rem 1rem calc(var(--nav-height) + 1.25rem);
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Bottom tab bar on mobile */
+.app__nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  height: var(--nav-height);
+  transition: background-color var(--transition), border-color var(--transition);
+}
+
+/* Sidebar layout on wider screens */
+@media (min-width: 768px) {
+  .app {
+    flex-direction: row;
+  }
+
+  .app__nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: auto;
+    width: 220px;
+    height: 100dvh;
+    border-top: none;
+    border-right: 1px solid var(--color-border);
+  }
+
+  .app__view {
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+}
