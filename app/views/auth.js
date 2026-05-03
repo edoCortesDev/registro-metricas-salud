@@ -1,4 +1,4 @@
-import { sendMagicLink } from '../services/authService.js';
+import { signIn, signUp } from '../services/authService.js';
 import { showToast } from '../components/toast.js';
 import { sanitizeText } from '../utils/sanitize.js';
 import { t } from '../utils/i18n.js';
@@ -8,6 +8,8 @@ function isValidEmail(email) {
 }
 
 export async function mount(container) {
+  let isSignup = false;
+
   const section = document.createElement('section');
   section.className = 'auth';
 
@@ -34,6 +36,7 @@ export async function mount(container) {
   form.className = 'auth__form form';
   form.setAttribute('novalidate', '');
 
+  // Email group
   const emailGroup = document.createElement('div');
   emailGroup.className = 'form__group';
 
@@ -60,69 +63,162 @@ export async function mount(container) {
   emailGroup.appendChild(emailInput);
   emailGroup.appendChild(emailError);
 
+  // Password group
+  const passwordGroup = document.createElement('div');
+  passwordGroup.className = 'form__group';
+
+  const passwordLabel = document.createElement('label');
+  passwordLabel.className = 'form__label form__label--required';
+  passwordLabel.htmlFor = 'auth-password';
+  passwordLabel.textContent = t('auth.password');
+
+  const passwordInput = document.createElement('input');
+  passwordInput.type = 'password';
+  passwordInput.id = 'auth-password';
+  passwordInput.className = 'form__input';
+  passwordInput.autocomplete = 'current-password';
+  passwordInput.required = true;
+
+  const passwordError = document.createElement('span');
+  passwordError.className = 'form__error';
+  passwordError.id = 'auth-password-error';
+  passwordError.setAttribute('aria-live', 'polite');
+  passwordInput.setAttribute('aria-describedby', 'auth-password-error');
+
+  passwordGroup.appendChild(passwordLabel);
+  passwordGroup.appendChild(passwordInput);
+  passwordGroup.appendChild(passwordError);
+
+  // Confirm password group (signup only)
+  const confirmGroup = document.createElement('div');
+  confirmGroup.className = 'form__group';
+  confirmGroup.setAttribute('hidden', '');
+
+  const confirmLabel = document.createElement('label');
+  confirmLabel.className = 'form__label form__label--required';
+  confirmLabel.htmlFor = 'auth-confirm';
+  confirmLabel.textContent = t('auth.confirm_password');
+
+  const confirmInput = document.createElement('input');
+  confirmInput.type = 'password';
+  confirmInput.id = 'auth-confirm';
+  confirmInput.className = 'form__input';
+  confirmInput.autocomplete = 'new-password';
+
+  const confirmError = document.createElement('span');
+  confirmError.className = 'form__error';
+  confirmError.id = 'auth-confirm-error';
+  confirmError.setAttribute('aria-live', 'polite');
+  confirmInput.setAttribute('aria-describedby', 'auth-confirm-error');
+
+  confirmGroup.appendChild(confirmLabel);
+  confirmGroup.appendChild(confirmInput);
+  confirmGroup.appendChild(confirmError);
+
   const submitBtn = document.createElement('button');
   submitBtn.type = 'submit';
   submitBtn.className = 'btn btn--primary btn--block';
-  submitBtn.textContent = t('auth.submit');
+  submitBtn.textContent = t('auth.signin');
+
+  const toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.className = 'btn btn--ghost btn--block auth__toggle';
+  toggleBtn.textContent = t('auth.toggle_signup');
 
   form.appendChild(emailGroup);
+  form.appendChild(passwordGroup);
+  form.appendChild(confirmGroup);
   form.appendChild(submitBtn);
-
-  const successMsg = document.createElement('div');
-  successMsg.className = 'auth__success';
-  successMsg.setAttribute('hidden', '');
-  successMsg.setAttribute('role', 'status');
-
-  const successIcon = document.createElement('div');
-  successIcon.className = 'auth__success-icon';
-  successIcon.textContent = '✓';
-
-  const successText = document.createElement('p');
-  successText.className = 'auth__success-text';
-
-  successMsg.appendChild(successIcon);
-  successMsg.appendChild(successText);
+  form.appendChild(toggleBtn);
 
   section.appendChild(header);
   section.appendChild(form);
-  section.appendChild(successMsg);
   container.appendChild(section);
 
   emailInput.focus();
 
+  function clearErrors() {
+    emailError.textContent = '';
+    passwordError.textContent = '';
+    confirmError.textContent = '';
+    emailInput.classList.remove('form__input--error');
+    passwordInput.classList.remove('form__input--error');
+    confirmInput.classList.remove('form__input--error');
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    isSignup = !isSignup;
+    clearErrors();
+
+    if (isSignup) {
+      confirmGroup.removeAttribute('hidden');
+      passwordInput.autocomplete = 'new-password';
+      submitBtn.textContent = t('auth.signup');
+      toggleBtn.textContent = t('auth.toggle_signin');
+    } else {
+      confirmGroup.setAttribute('hidden', '');
+      passwordInput.autocomplete = 'current-password';
+      submitBtn.textContent = t('auth.signin');
+      toggleBtn.textContent = t('auth.toggle_signup');
+    }
+  });
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    emailError.textContent = '';
-    emailInput.classList.remove('form__input--error');
+    clearErrors();
 
-    const email = emailInput.value.trim();
+    const email = sanitizeText(emailInput.value.trim());
+    const password = passwordInput.value;
+    const confirm = confirmInput.value;
+
+    let valid = true;
 
     if (!email) {
       emailError.textContent = t('auth.error_required');
       emailInput.classList.add('form__input--error');
       emailInput.focus();
-      return;
-    }
-
-    if (!isValidEmail(email)) {
+      valid = false;
+    } else if (!isValidEmail(email)) {
       emailError.textContent = t('auth.error_invalid_email');
       emailInput.classList.add('form__input--error');
       emailInput.focus();
-      return;
+      valid = false;
     }
+
+    if (!password) {
+      passwordError.textContent = t('auth.error_required');
+      passwordInput.classList.add('form__input--error');
+      if (valid) passwordInput.focus();
+      valid = false;
+    } else if (password.length < 8) {
+      passwordError.textContent = t('auth.password_min');
+      passwordInput.classList.add('form__input--error');
+      if (valid) passwordInput.focus();
+      valid = false;
+    }
+
+    if (isSignup && valid && password !== confirm) {
+      confirmError.textContent = t('auth.password_mismatch');
+      confirmInput.classList.add('form__input--error');
+      confirmInput.focus();
+      valid = false;
+    }
+
+    if (!valid) return;
 
     submitBtn.disabled = true;
     submitBtn.textContent = t('auth.sending');
 
     try {
-      await sendMagicLink(email);
-      form.setAttribute('hidden', '');
-      successText.textContent = t('auth.check_email', { email: sanitizeText(email) });
-      successMsg.removeAttribute('hidden');
+      if (isSignup) {
+        await signUp(email, password);
+      } else {
+        await signIn(email, password);
+      }
     } catch (err) {
       showToast(t('errors.generic'), 'error');
       submitBtn.disabled = false;
-      submitBtn.textContent = t('auth.submit');
+      submitBtn.textContent = isSignup ? t('auth.signup') : t('auth.signin');
     }
   });
 

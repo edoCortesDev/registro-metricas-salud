@@ -1,11 +1,13 @@
 import supabase from './supabase.js';
 import { setState } from '../store/appState.js';
 
-export async function sendMagicLink(email) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin },
-  });
+export async function signIn(email, password) {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+}
+
+export async function signUp(email, password) {
+  const { error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
 }
 

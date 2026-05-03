@@ -509,3 +509,47 @@ La IA debe generar, en orden:
 - [ ] Dark/light mode funcional (auto + manual)
 - [ ] Chart.js con todos los filtros incluyendo custom range
 - [ ] `.env.example` incluido con variables necesarias
+
+## 21. Cambio de Auth — Email + Password
+
+Reemplazar el sistema de Magic Link OTP por Email + Password clásico.
+
+**Motivo:** El plan gratuito de Supabase limita a 2 emails/hora,
+lo que bloquea el desarrollo.
+
+**Importante — NO requiere cambios en SQL:**
+Supabase gestiona las contraseñas internamente en `auth.users`,
+una tabla del sistema que ya existe. No hay que crear tablas nuevas.
+
+**Cambios en Supabase (hacer manualmente antes de ejecutar el código):**
+- Authentication → Providers → Email → activar "Email provider"
+- Desactivar "Confirm email" para desarrollo (Authentication →
+  Providers → Email → desactivar "Confirm email")
+
+**Cambios en el código:**
+
+`authService.js`:
+- Eliminar `sendMagicLink(email)`
+- Agregar `signIn(email, password)` usando `supabase.auth.signInWithPassword()`
+- Agregar `signUp(email, password)` usando `supabase.auth.signUp()`
+
+`views/auth.js`:
+- El formulario tiene dos campos: email y password
+- Un toggle entre modo "Iniciar sesión" y modo "Registrarse"
+- En modo "Registrarse" agregar un tercer campo "Confirmar contraseña"
+- Validar que password tenga mínimo 8 caracteres en frontend
+- Validar que ambas contraseñas coincidan antes de llamar a signUp
+- Usar `sanitizeText()` existente en ambos campos
+- Mantener estructura BEM y sistema i18n existente
+- NO modificar index.html — el formulario se genera dinámicamente
+
+`i18n/es.json` y `i18n/de.json`:
+- Agregar claves nuevas:
+  - `auth.password`
+  - `auth.confirm_password`
+  - `auth.signin`
+  - `auth.signup`
+  - `auth.toggle_signup`
+  - `auth.toggle_signin`
+  - `auth.password_min`
+  - `auth.password_mismatch`
