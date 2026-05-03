@@ -4,6 +4,7 @@ import { sanitizeNumber } from '../utils/sanitize.js';
 import { showToast } from '../components/toast.js';
 import { t } from '../utils/i18n.js';
 
+
 export async function mount(container) {
   const section = document.createElement('section');
   section.className = 'onboarding';
@@ -71,12 +72,40 @@ export async function mount(container) {
   heightGroup.appendChild(heightError);
   heightGroup.appendChild(heightHint);
 
+  // Sex selector
+  const sexGroup = document.createElement('div');
+  sexGroup.className = 'form__group';
+
+  const sexLabel = document.createElement('label');
+  sexLabel.className = 'form__label';
+  sexLabel.htmlFor = 'onboarding-sex';
+  sexLabel.textContent = t('profile.sex');
+
+  const sexSelect = document.createElement('select');
+  sexSelect.id = 'onboarding-sex';
+  sexSelect.className = 'form__select';
+
+  [
+    { value: '',       label: t('profile.sex_other') },
+    { value: 'male',   label: t('profile.sex_male') },
+    { value: 'female', label: t('profile.sex_female') },
+  ].forEach(({ value, label }) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    sexSelect.appendChild(opt);
+  });
+
+  sexGroup.appendChild(sexLabel);
+  sexGroup.appendChild(sexSelect);
+
   const submitBtn = document.createElement('button');
   submitBtn.type = 'submit';
   submitBtn.className = 'btn btn--primary btn--block';
   submitBtn.textContent = t('onboarding.submit');
 
   form.appendChild(heightGroup);
+  form.appendChild(sexGroup);
   form.appendChild(submitBtn);
 
   section.appendChild(header);
@@ -114,7 +143,8 @@ export async function mount(container) {
 
     try {
       const user = getState('user');
-      const profile = await createProfile({ id: user.id, height });
+      const sex = sexSelect.value || null;
+      const profile = await createProfile({ id: user.id, height, sex });
       setState('profile', profile);
       location.hash = '#/dashboard';
     } catch (err) {

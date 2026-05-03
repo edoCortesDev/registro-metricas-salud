@@ -12,20 +12,21 @@ export async function getProfile(userId) {
   return data ?? null;
 }
 
-export async function createProfile({ id, height }) {
+export async function createProfile({ id, height, sex }) {
   const { data, error } = await supabase
     .from('profiles')
-    .insert({ id, height })
+    .insert({ id, height, sex: sex ?? null })
     .select()
     .single();
   if (error) throw error;
   return data;
 }
 
-export async function updateProfile({ id, height }) {
+export async function updateProfile(fields) {
+  const { id, ...updates } = fields;
   const { data, error } = await supabase
     .from('profiles')
-    .update({ height })
+    .update(updates)
     .eq('id', id)
     .select()
     .single();

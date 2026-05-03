@@ -74,6 +74,14 @@
   flex-shrink: 0;
 }
 
+.settings__pw-form {
+  flex-direction: column;
+}
+
+.settings__pw-form .form__input {
+  width: 100%;
+}
+
 @media (min-width: 480px) {
   .settings__radio-group {
     flex-direction: row;

@@ -3,8 +3,9 @@ import { getState, setState, subscribe } from '../store/appState.js';
 import { calculateBMI, getBMICategory } from '../utils/bmi.js';
 import { generateInsights } from '../utils/insights.js';
 import { renderChart, destroyChart } from '../components/chart.js';
+import { mountProfileMenu } from '../components/profileMenu.js';
 import { showToast } from '../components/toast.js';
-import { t } from '../utils/i18n.js';
+import { t, formatDate, formatNumber } from '../utils/i18n.js';
 
 const FILTERS = ['7d', '30d', '3m', '1y', 'custom'];
 
@@ -24,22 +25,31 @@ export async function mount(container) {
   addBtn.className = 'btn btn--primary btn--sm';
   addBtn.textContent = t('entry.add');
 
+  const profileMenuContainer = document.createElement('div');
+  profileMenuContainer.className = 'dashboard__profile-menu';
+
   header.appendChild(title);
   header.appendChild(addBtn);
+  header.appendChild(profileMenuContainer);
 
   // Metric cards grid
   const metricsGrid = document.createElement('div');
   metricsGrid.className = 'dashboard__metrics';
 
-  const weightCard = makeCard('card--primary', t('dashboard.weight'), '', 'kg', 'weight-value', 'weight-date');
-  const bmiCard = makeCard('', t('dashboard.bmi'), '', '', 'bmi-value', 'bmi-category');
-  const fatCard = makeCard('', t('dashboard.fat'), '', '%', 'fat-value', null);
-  const muscleCard = makeCard('card--success', t('dashboard.muscle'), '', 'kg', 'muscle-value', null);
+  const weightCard = makeCard('card--primary', t('dashboard.weight'), 'kg', 'weight-value', 'weight-trend', 'weight-date');
+  const bmiCard    = makeCard('', t('dashboard.bmi'), '', 'bmi-value', null, 'bmi-category');
+  const fatCard    = makeCard('', t('dashboard.fat'), '%', 'fat-value', 'fat-trend', null);
+  const muscleCard = makeCard('card--success', t('dashboard.muscle'), 'kg', 'muscle-value', 'muscle-trend', null);
 
   metricsGrid.appendChild(weightCard);
   metricsGrid.appendChild(bmiCard);
   metricsGrid.appendChild(fatCard);
   metricsGrid.appendChild(muscleCard);
+
+  // Last record line
+  const lastRecordEl = document.createElement('p');
+  lastRecordEl.className = 'dashboard__last-record';
+  lastRecordEl.id = 'last-record-text';
 
   // Chart section
   const chartSection = document.createElement('div');
@@ -65,7 +75,7 @@ export async function mount(container) {
     filtersEl.appendChild(btn);
   });
 
-  // Custom range inputs
+  // Custom range inputs (hidden unless custom filter is active)
   const customRange = document.createElement('div');
   customRange.className = 'chart-custom-range';
   customRange.setAttribute('hidden', '');
@@ -102,13 +112,12 @@ export async function mount(container) {
 
   const emptyChart = document.createElement('div');
   emptyChart.className = 'chart-empty';
-  emptyChart.textContent = t('dashboard.no_data');
+  emptyChart.setAttribute('hidden', '');
 
   chartWrapper.appendChild(filtersEl);
   chartWrapper.appendChild(customRange);
   chartWrapper.appendChild(canvas);
   chartWrapper.appendChild(emptyChart);
-  emptyChart.setAttribute('hidden', '');
 
   chartSection.appendChild(chartTitle);
   chartSection.appendChild(chartWrapper);
@@ -120,9 +129,12 @@ export async function mount(container) {
 
   section.appendChild(header);
   section.appendChild(metricsGrid);
+  section.appendChild(lastRecordEl);
   section.appendChild(chartSection);
   section.appendChild(insightsSection);
   container.appendChild(section);
+
+  mountProfileMenu(profileMenuContainer);
 
   // --- Load data ---
   let metrics = getState('metrics');
@@ -137,15 +149,11 @@ export async function mount(container) {
     }
   }
 
-  updateMetricCards(metrics);
-  updateInsightsSection(metrics, insightsSection);
+  const profile = getState('profile');
 
-  if (metrics.length === 0) {
-    emptyChart.removeAttribute('hidden');
-    canvas.setAttribute('hidden', '');
-  } else {
-    renderChart('metrics-chart', metrics, activeFilter);
-  }
+  updateMetricCards(metrics, profile);
+  updateInsightsSection(metrics, insightsSection);
+  renderChart('metrics-chart', metrics, activeFilter, profile);
 
   // Filter tab clicks
   filtersEl.addEventListener('click', e => {
@@ -161,7 +169,7 @@ export async function mount(container) {
       customRange.removeAttribute('hidden');
     } else {
       customRange.setAttribute('hidden', '');
-      if (metrics.length > 0) renderChart('metrics-chart', metrics, activeFilter);
+      renderChart('metrics-chart', metrics, activeFilter, profile);
     }
   });
 
@@ -172,18 +180,14 @@ export async function mount(container) {
     if (from > to) { showToast(t('chart.error_range_invalid'), 'error'); return; }
     const filtered = metrics.filter(m => m.date >= from && m.date <= to);
     if (filtered.length === 0) { showToast(t('chart.no_data_range'), 'info'); return; }
-    renderChart('metrics-chart', filtered, 'custom');
+    renderChart('metrics-chart', filtered, 'custom', profile);
   });
 
   const unsub = subscribe('metrics', newMetrics => {
     metrics = newMetrics;
-    updateMetricCards(newMetrics);
+    updateMetricCards(newMetrics, profile);
     updateInsightsSection(newMetrics, insightsSection);
-    if (newMetrics.length > 0) {
-      canvas.removeAttribute('hidden');
-      emptyChart.setAttribute('hidden', '');
-      if (activeFilter !== 'custom') renderChart('metrics-chart', newMetrics, activeFilter);
-    }
+    if (activeFilter !== 'custom') renderChart('metrics-chart', newMetrics, activeFilter, profile);
   });
 
   return () => {
@@ -192,7 +196,7 @@ export async function mount(container) {
   };
 }
 
-function makeCard(extraClass, label, value, unit, valueId, subtitleId) {
+function makeCard(extraClass, label, unit, valueId, trendId, subtitleId) {
   const card = document.createElement('div');
   card.className = `card dashboard__metric-card ${extraClass}`.trim();
 
@@ -215,6 +219,14 @@ function makeCard(extraClass, label, value, unit, valueId, subtitleId) {
   valueRow.appendChild(valueEl);
   valueRow.appendChild(unitEl);
 
+  if (trendId) {
+    const trendEl = document.createElement('span');
+    trendEl.className = 'dashboard__trend';
+    trendEl.id = trendId;
+    trendEl.setAttribute('aria-hidden', 'true');
+    valueRow.appendChild(trendEl);
+  }
+
   card.appendChild(labelEl);
   card.appendChild(valueRow);
 
@@ -228,30 +240,92 @@ function makeCard(extraClass, label, value, unit, valueId, subtitleId) {
   return card;
 }
 
-function updateMetricCards(metrics) {
-  const latest = metrics[0];
-  const profile = getState('profile');
+function fatThreshold(sex) {
+  if (sex === 'male') return 25;
+  if (sex === 'female') return 32;
+  return 30;
+}
 
-  const weightEl = document.getElementById('weight-value');
-  const weightDate = document.getElementById('weight-date');
-  const bmiEl = document.getElementById('bmi-value');
-  const bmiCat = document.getElementById('bmi-category');
-  const fatEl = document.getElementById('fat-value');
-  const muscleEl = document.getElementById('muscle-value');
+function setTrend(elId, diff, invertPositive = false) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (Math.abs(diff) < 0.5) {
+    el.textContent = '→';
+    el.className = 'dashboard__trend dashboard__trend--neutral';
+  } else if (diff > 0) {
+    el.textContent = '↑';
+    el.className = invertPositive
+      ? 'dashboard__trend dashboard__trend--good'
+      : 'dashboard__trend dashboard__trend--bad';
+  } else {
+    el.textContent = '↓';
+    el.className = invertPositive
+      ? 'dashboard__trend dashboard__trend--bad'
+      : 'dashboard__trend dashboard__trend--good';
+  }
+}
+
+function updateMetricCards(metrics, profile) {
+  const latest = metrics[0];
+  const prev   = metrics[1] ?? null;
+
+  const weightEl    = document.getElementById('weight-value');
+  const weightDate  = document.getElementById('weight-date');
+  const bmiEl       = document.getElementById('bmi-value');
+  const bmiCat      = document.getElementById('bmi-category');
+  const fatEl       = document.getElementById('fat-value');
+  const muscleEl    = document.getElementById('muscle-value');
+  const lastRecordEl = document.getElementById('last-record-text');
 
   if (!latest) return;
 
-  if (weightEl) weightEl.textContent = latest.weight != null ? latest.weight.toFixed(1) : '—';
+  // Weight
+  if (weightEl) weightEl.textContent = latest.weight != null ? formatNumber(latest.weight) : '—';
   if (weightDate) weightDate.textContent = latest.date ? formatDate(latest.date) : '';
-  if (fatEl) fatEl.textContent = latest.body_fat != null ? latest.body_fat.toFixed(1) : '—';
-  if (muscleEl) muscleEl.textContent = latest.muscle_mass != null ? latest.muscle_mass.toFixed(1) : '—';
+  if (prev?.weight != null && latest.weight != null) {
+    setTrend('weight-trend', latest.weight - prev.weight, false);
+  }
 
+  // BMI
   if (bmiEl && profile?.height) {
     const bmi = calculateBMI(latest.weight, profile.height);
-    bmiEl.textContent = bmi ? bmi.toFixed(1) : '—';
+    bmiEl.textContent = bmi ? formatNumber(bmi) : '—';
+    bmiEl.style.color = bmi >= 25 ? 'var(--color-danger)' : '';
     if (bmiCat) {
       const cat = getBMICategory(bmi);
       bmiCat.textContent = cat ? t(`dashboard.bmi_${cat}`) : '';
+    }
+  }
+
+  // Fat
+  if (fatEl) {
+    fatEl.textContent = latest.body_fat != null ? formatNumber(latest.body_fat) : '—';
+    const threshold = fatThreshold(profile?.sex);
+    fatEl.style.color = (latest.body_fat != null && latest.body_fat > threshold)
+      ? 'var(--color-danger)' : '';
+  }
+  if (prev?.body_fat != null && latest.body_fat != null) {
+    setTrend('fat-trend', latest.body_fat - prev.body_fat, false);
+  }
+
+  // Muscle
+  if (muscleEl) muscleEl.textContent = latest.muscle_mass != null ? formatNumber(latest.muscle_mass) : '—';
+  if (prev?.muscle_mass != null && latest.muscle_mass != null) {
+    setTrend('muscle-trend', latest.muscle_mass - prev.muscle_mass, true);
+  }
+
+  // Last record: X days ago
+  if (lastRecordEl && latest.date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const recDate = new Date(latest.date + 'T00:00:00');
+    const diffDays = Math.round((today - recDate) / 86400000);
+    if (diffDays === 0) {
+      lastRecordEl.textContent = t('dashboard.last_record_today');
+    } else if (diffDays === 1) {
+      lastRecordEl.textContent = t('dashboard.last_record', { days: diffDays });
+    } else {
+      lastRecordEl.textContent = t('dashboard.last_record_plural', { days: diffDays });
     }
   }
 }
@@ -280,7 +354,3 @@ function updateInsightsSection(metrics, container) {
   container.appendChild(list);
 }
 
-function formatDate(dateStr) {
-  const [year, month, day] = dateStr.split('-');
-  return `${day}/${month}/${year}`;
-}

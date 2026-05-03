@@ -553,3 +553,128 @@ una tabla del sistema que ya existe. No hay que crear tablas nuevas.
   - `auth.toggle_signin`
   - `auth.password_min`
   - `auth.password_mismatch`
+
+## 22. Mejoras UI/UX — Sprint 2
+
+### 22.1 Gráfico (components/chart.js)
+- Agregar IMC como cuarta línea en el chart
+- Ocultar los dos <input type="date"> del rango custom cuando el
+  filtro activo NO es "Custom". Solo mostrarse al hacer click en "Custom"
+- Mostrar mensaje vacío cuando hay menos de 2 registros:
+  clave i18n: `chart.empty_state`
+- Si el usuario no tiene altura configurada, omitir línea de IMC
+  sin crashear
+
+### 22.2 Dashboard (views/dashboard.js)
+- IMC: mostrar en rojo (--color-danger) si BMI >= 25
+- Grasa corporal: mostrar en rojo si supera umbral según sexo:
+  - Hombre: > 25%
+  - Mujer: > 32%
+  - Sin sexo configurado: > 30%
+- Flechas de tendencia al lado de cada métrica vs registro anterior:
+  - Peso y grasa: ↑ rojo si aumentó, ↓ verde si bajó, → gris si diferencia < 0.5
+  - Masa muscular: lógica invertida (↑ es positivo en verde)
+- Mostrar "Último registro: hace X días" debajo de las métricas
+  clave i18n: `dashboard.last_record`
+
+### 22.3 Historial (views/history.js)
+- Mostrar IMC calculado en cada fila
+- Modal de confirmación de borrado con datos del registro:
+  "¿Eliminar registro del {fecha}, {peso}kg?"
+  clave i18n: `history.confirm_delete`
+
+### 22.4 Menú de perfil (components/profileMenu.js)
+- Botón circular en esquina superior derecha del dashboard
+- Avatar: inicial del email en mayúscula como fallback
+- Comportamiento según pantalla:
+  - Móvil (< 768px): bottom sheet que sube desde abajo con overlay oscuro
+  - Desktop (≥ 768px): dropdown flotante debajo del avatar
+- Contenido del menú:
+  - Nombre de usuario editable inline
+  - Acceso a Settings
+  - Cambiar contraseña
+  - Cerrar sesión
+- BEM: `.profile-menu`, `.profile-menu__avatar`,
+  `.profile-menu__sheet`, `.profile-menu__item`
+- CSS en styles/components/profile-menu.css
+- Cerrar al hacer click fuera o en overlay
+
+### 22.5 Auth — Recuperación de contraseña (views/auth.js)
+- Link "¿Olvidaste tu contraseña?" debajo del formulario de login
+- Al hacer click: campo email + botón "Enviar"
+- Usar `supabase.auth.resetPasswordForEmail(email)`
+- Claves i18n: `auth.forgot_password`, `auth.reset_sent`,
+  `auth.back_to_login`
+
+### 22.6 Cambiar contraseña (views/settings.js)
+- Sección "Seguridad" en Settings:
+  - Campo nueva contraseña (mín 8 caracteres)
+  - Campo confirmar nueva contraseña
+  - Botón "Actualizar contraseña"
+- Usar `supabase.auth.updateUser({ password: newPassword })`
+
+### 22.7 Perfil — Sexo del usuario
+- Agregar campo `sex` a profiles:
+```sql
+  ALTER TABLE profiles ADD COLUMN sex text 
+    CHECK (sex IN ('male', 'female', 'other'));
+```
+- Selector en onboarding: Hombre / Mujer / Prefiero no decir
+- Selector en Settings para cambiarlo después
+- Usar para calcular umbral de grasa en dashboard
+- Claves i18n: `profile.sex`, `profile.sex_male`,
+  `profile.sex_female`, `profile.sex_other`
+
+### 22.8 Validación de registro duplicado (views/addEntry.js)
+- Verificar si ya existe registro para la fecha antes de llamar addMetric
+- Si existe: mensaje amigable con opción de editar ese registro
+- No exponer error 23505 de Supabase al usuario
+- Clave i18n: `entry.duplicate_date`
+
+### 22.9 Exportar datos CSV (views/history.js)
+- Botón "Exportar CSV" en la vista Historial
+- Columnas: fecha, peso, grasa, masa muscular, IMC, notas
+- Usar Blob + URL.createObjectURL — sin librerías externas
+- Nombre del archivo: `metricas-{fecha-hoy}.csv`
+- Clave i18n: `history.export_csv`
+
+### 22.10 PWA — Instalable en móvil
+- Crear `/public/manifest.json` con name, short_name,
+  start_url, display standalone, theme_color #3b82f6
+- Iconos en /public: icon-192.png e icon-512.png
+- Service Worker mínimo en /public/sw.js solo para instalabilidad
+- Agregar <link rel="manifest"> en index.html
+- Registrar SW en main.js
+
+### 22.11 Formato de fechas y números por idioma (utils/i18n.js)
+- Usar Intl.DateTimeFormat para fechas:
+  - es: 3 de mayo de 2026
+  - de: 3. Mai 2026
+- Usar Intl.NumberFormat para decimales:
+  - es: 75.5 kg
+  - de: 75,5 kg
+- Crear funciones: `formatDate(date)` y `formatNumber(value, decimals)`
+- Reemplazar todos los usos de fechas y números en todas las vistas
+
+### 22.12 Animaciones entre vistas (main.js + styles/base.css)
+- Fade in/out de 200ms al cambiar de vista
+- Clases CSS: `.view-enter` y `.view-exit` con opacity transition
+- Sin librerías de animación — solo CSS transitions
+- Respetar prefers-reduced-motion: desactivar si el usuario lo tiene
+  configurado en su sistema operativo
+
+---
+
+### SQL adicional — ejecutar en Supabase antes de implementar
+```sql
+ALTER TABLE profiles ADD COLUMN sex text 
+  CHECK (sex IN ('male', 'female', 'other'));
+```
+
+### Archivos nuevos a crear
+- `app/components/profileMenu.js`
+- `styles/components/profile-menu.css`
+- `public/manifest.json`
+- `public/sw.js`
+- `public/icon-192.png`
+- `public/icon-512.png`

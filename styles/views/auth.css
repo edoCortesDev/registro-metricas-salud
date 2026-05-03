@@ -49,3 +49,21 @@
   font-size: 0.9375rem;
   line-height: 1.6;
 }
+
+.auth__forgot {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+  text-decoration: underline;
+}
+
+.auth__reset-section {
+  width: 100%;
+  max-width: 360px;
+}
+
+.auth__reset-title {
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}

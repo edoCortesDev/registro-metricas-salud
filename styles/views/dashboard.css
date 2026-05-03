@@ -2,7 +2,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   margin-bottom: 1.5rem;
+}
+
+.dashboard__profile-menu {
+  margin-left: auto;
 }
 
 .dashboard__title {
@@ -19,7 +24,24 @@
 .dashboard__metric-value-row {
   display: flex;
   align-items: baseline;
-  gap: 0.125rem;
+  gap: 0.25rem;
+}
+
+.dashboard__trend {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-left: 0.125rem;
+}
+
+.dashboard__trend--good { color: var(--color-secondary); }
+.dashboard__trend--bad  { color: var(--color-danger); }
+.dashboard__trend--neutral { color: var(--color-text-muted); }
+
+.dashboard__last-record {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: -0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .dashboard__section-title {

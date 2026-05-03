@@ -1,5 +1,6 @@
 import { addMetric, updateMetric } from '../services/metricsService.js';
 import { getState, setState } from '../store/appState.js';
+import { createModal } from '../components/modal.js';
 import { sanitizeNumber, sanitizeText } from '../utils/sanitize.js';
 import { showToast } from '../components/toast.js';
 import { t } from '../utils/i18n.js';
@@ -158,6 +159,24 @@ export async function mount(container) {
       notes: sanitizeText(notesGroup.textarea.value.trim()) || null,
     };
 
+    // Check for duplicate date before submitting (new entries only)
+    if (!editId) {
+      const existingMetrics = getState('metrics');
+      const duplicate = existingMetrics.find(m => m.date === dateVal);
+      if (duplicate) {
+        createModal({
+          title: t('entry.add_title'),
+          body: t('entry.duplicate_date'),
+          confirmText: t('entry.edit_existing'),
+          cancelText: t('common.cancel'),
+          onConfirm: () => {
+            location.hash = `#/add?id=${duplicate.id}`;
+          },
+        });
+        return;
+      }
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = t('common.saving');
 
@@ -176,12 +195,7 @@ export async function mount(container) {
         location.hash = '#/dashboard';
       }
     } catch (err) {
-      if (err?.code === '23505') {
-        dateGroup.error.textContent = t('entry.error_duplicate_date');
-        dateGroup.input.classList.add('form__input--error');
-      } else {
-        showToast(t('errors.generic'), 'error');
-      }
+      showToast(t('errors.generic'), 'error');
       submitBtn.disabled = false;
       submitBtn.textContent = editId ? t('common.save') : t('entry.add');
     }

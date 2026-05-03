@@ -1,9 +1,9 @@
 import { updateProfile } from '../services/profileService.js';
-import { signOut } from '../services/authService.js';
+import { signOut, updatePassword } from '../services/authService.js';
 import { getState, setState, resetState } from '../store/appState.js';
 import { applyTheme } from '../utils/theme.js';
 import { loadLocale } from '../utils/i18n.js';
-import { sanitizeNumber } from '../utils/sanitize.js';
+import { sanitizeNumber, sanitizeText } from '../utils/sanitize.js';
 import { showToast } from '../components/toast.js';
 import { t } from '../utils/i18n.js';
 
@@ -15,10 +15,10 @@ export async function mount(container) {
   const section = document.createElement('section');
   section.className = 'settings';
 
-  const title = document.createElement('h1');
-  title.className = 'settings__title';
-  title.textContent = t('settings.title');
-  section.appendChild(title);
+  const titleEl = document.createElement('h1');
+  titleEl.className = 'settings__title';
+  titleEl.textContent = t('settings.title');
+  section.appendChild(titleEl);
 
   // --- Theme ---
   const themeGroup = makeSettingsGroup(t('settings.theme_label'));
@@ -36,17 +36,14 @@ export async function mount(container) {
   themeOptions.forEach(({ value, label }) => {
     const radioLabel = document.createElement('label');
     radioLabel.className = 'settings__radio-label';
-
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'theme';
     radio.value = value;
     radio.checked = value === currentTheme;
     radio.className = 'settings__radio';
-
     const span = document.createElement('span');
     span.textContent = label;
-
     radioLabel.appendChild(radio);
     radioLabel.appendChild(span);
     themeRadioGroup.appendChild(radioLabel);
@@ -115,6 +112,74 @@ export async function mount(container) {
   heightGroup.content.appendChild(heightForm);
   section.appendChild(heightGroup.el);
 
+  // --- Sex ---
+  const sexGroup = makeSettingsGroup(t('settings.sex_label'));
+  const sexSelect = document.createElement('select');
+  sexSelect.className = 'form__select';
+  sexSelect.setAttribute('aria-label', t('settings.sex_label'));
+
+  [
+    { value: '',       label: t('profile.sex_other') },
+    { value: 'male',   label: t('profile.sex_male') },
+    { value: 'female', label: t('profile.sex_female') },
+  ].forEach(({ value, label }) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    opt.selected = (profile?.sex ?? '') === value;
+    sexSelect.appendChild(opt);
+  });
+
+  const saveSexBtn = document.createElement('button');
+  saveSexBtn.type = 'button';
+  saveSexBtn.className = 'btn btn--primary btn--sm';
+  saveSexBtn.textContent = t('common.save');
+
+  const sexRow = document.createElement('div');
+  sexRow.className = 'settings__inline-form';
+  sexRow.appendChild(sexSelect);
+  sexRow.appendChild(saveSexBtn);
+  sexGroup.content.appendChild(sexRow);
+  section.appendChild(sexGroup.el);
+
+  // --- Security / Change password ---
+  const securityGroup = makeSettingsGroup(t('settings.security'));
+  const pwForm = document.createElement('form');
+  pwForm.className = 'settings__inline-form settings__pw-form';
+  pwForm.setAttribute('novalidate', '');
+
+  const newPwInput = document.createElement('input');
+  newPwInput.type = 'password';
+  newPwInput.className = 'form__input';
+  newPwInput.placeholder = t('settings.new_password');
+  newPwInput.autocomplete = 'new-password';
+  newPwInput.setAttribute('aria-label', t('settings.new_password'));
+  newPwInput.setAttribute('aria-describedby', 'settings-pw-error');
+
+  const confirmPwInput = document.createElement('input');
+  confirmPwInput.type = 'password';
+  confirmPwInput.className = 'form__input';
+  confirmPwInput.placeholder = t('settings.confirm_new_password');
+  confirmPwInput.autocomplete = 'new-password';
+  confirmPwInput.setAttribute('aria-label', t('settings.confirm_new_password'));
+
+  const updatePwBtn = document.createElement('button');
+  updatePwBtn.type = 'submit';
+  updatePwBtn.className = 'btn btn--primary btn--sm';
+  updatePwBtn.textContent = t('settings.update_password');
+
+  const pwError = document.createElement('span');
+  pwError.className = 'form__error';
+  pwError.id = 'settings-pw-error';
+  pwError.setAttribute('aria-live', 'polite');
+
+  pwForm.appendChild(newPwInput);
+  pwForm.appendChild(confirmPwInput);
+  pwForm.appendChild(updatePwBtn);
+  pwForm.appendChild(pwError);
+  securityGroup.content.appendChild(pwForm);
+  section.appendChild(securityGroup.el);
+
   // --- Logout ---
   const logoutGroup = makeSettingsGroup('');
   const logoutBtn = document.createElement('button');
@@ -135,7 +200,6 @@ export async function mount(container) {
   // Event: language
   langSelect.addEventListener('change', async e => {
     await loadLocale(e.target.value);
-    // Reload to re-render all i18n strings
     location.hash = '#/settings';
   });
 
@@ -161,6 +225,55 @@ export async function mount(container) {
       showToast(t('errors.generic'), 'error');
     } finally {
       saveHeightBtn.disabled = false;
+    }
+  });
+
+  // Event: sex
+  saveSexBtn.addEventListener('click', async () => {
+    saveSexBtn.disabled = true;
+    try {
+      const sex = sexSelect.value || null;
+      const updated = await updateProfile({ id: profile.id, sex });
+      setState('profile', updated);
+      showToast(t('common.save') + ' ✓', 'success');
+    } catch {
+      showToast(t('errors.generic'), 'error');
+    } finally {
+      saveSexBtn.disabled = false;
+    }
+  });
+
+  // Event: change password
+  pwForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    pwError.textContent = '';
+    newPwInput.classList.remove('form__input--error');
+    confirmPwInput.classList.remove('form__input--error');
+
+    const newPw = newPwInput.value;
+    const confirmPw = confirmPwInput.value;
+
+    if (newPw.length < 8) {
+      pwError.textContent = t('auth.password_min');
+      newPwInput.classList.add('form__input--error');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      pwError.textContent = t('auth.password_mismatch');
+      confirmPwInput.classList.add('form__input--error');
+      return;
+    }
+
+    updatePwBtn.disabled = true;
+    try {
+      await updatePassword(newPw);
+      showToast(t('settings.password_updated'), 'success');
+      newPwInput.value = '';
+      confirmPwInput.value = '';
+    } catch {
+      showToast(t('errors.generic'), 'error');
+    } finally {
+      updatePwBtn.disabled = false;
     }
   });
 

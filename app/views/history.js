@@ -1,8 +1,9 @@
 import { deleteMetric } from '../services/metricsService.js';
 import { getState, setState, subscribe } from '../store/appState.js';
+import { calculateBMI } from '../utils/bmi.js';
 import { createModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
-import { t } from '../utils/i18n.js';
+import { t, formatDate, formatNumber } from '../utils/i18n.js';
 
 export async function mount(container) {
   const section = document.createElement('section');
@@ -15,7 +16,13 @@ export async function mount(container) {
   title.className = 'history__title';
   title.textContent = t('history.title');
 
+  const exportBtn = document.createElement('button');
+  exportBtn.type = 'button';
+  exportBtn.className = 'btn btn--secondary btn--sm';
+  exportBtn.textContent = t('history.export_csv');
+
   header.appendChild(title);
+  header.appendChild(exportBtn);
 
   const listContainer = document.createElement('div');
   listContainer.className = 'history__list-container';
@@ -23,6 +30,8 @@ export async function mount(container) {
   section.appendChild(header);
   section.appendChild(listContainer);
   container.appendChild(section);
+
+  const profile = getState('profile');
 
   const renderList = (metrics) => {
     while (listContainer.firstChild) listContainer.removeChild(listContainer.firstChild);
@@ -39,7 +48,7 @@ export async function mount(container) {
     list.className = 'history__list';
 
     metrics.forEach(entry => {
-      list.appendChild(buildHistoryItem(entry));
+      list.appendChild(buildHistoryItem(entry, profile));
     });
 
     listContainer.appendChild(list);
@@ -55,10 +64,11 @@ export async function mount(container) {
       if (deleteBtn) {
         const id = deleteBtn.dataset.id;
         const itemDate = deleteBtn.dataset.date;
+        const itemWeight = deleteBtn.dataset.weight;
 
         createModal({
           title: t('history.confirm_delete_title'),
-          body: t('history.confirm_delete_body', { date: itemDate }),
+          body: t('history.confirm_delete', { date: itemDate, weight: itemWeight }),
           confirmText: t('common.delete'),
           cancelText: t('common.cancel'),
           confirmDanger: true,
@@ -81,10 +91,14 @@ export async function mount(container) {
 
   const unsub = subscribe('metrics', renderList);
 
+  exportBtn.addEventListener('click', () => {
+    exportCSV(getState('metrics'), profile);
+  });
+
   return () => unsub();
 }
 
-function buildHistoryItem(entry) {
+function buildHistoryItem(entry, profile) {
   const li = document.createElement('li');
   li.className = 'history__item';
   li.dataset.id = entry.id;
@@ -113,6 +127,7 @@ function buildHistoryItem(entry) {
   deleteBtn.dataset.action = 'delete';
   deleteBtn.dataset.id = entry.id;
   deleteBtn.dataset.date = formatDate(entry.date);
+  deleteBtn.dataset.weight = entry.weight != null ? entry.weight.toFixed(1) : '—';
   deleteBtn.textContent = t('common.delete');
   deleteBtn.setAttribute('aria-label', `${t('common.delete')} ${formatDate(entry.date)}`);
 
@@ -124,10 +139,13 @@ function buildHistoryItem(entry) {
   const metrics = document.createElement('div');
   metrics.className = 'history__item-metrics';
 
+  const bmi = profile?.height ? calculateBMI(entry.weight, profile.height) : null;
+
   const items = [
     { label: t('dashboard.weight'), value: entry.weight, unit: 'kg' },
     { label: t('dashboard.fat'), value: entry.body_fat, unit: '%' },
     { label: t('dashboard.muscle'), value: entry.muscle_mass, unit: 'kg' },
+    { label: t('dashboard.bmi'), value: bmi, unit: '' },
   ];
 
   items.forEach(({ label, value, unit }) => {
@@ -139,7 +157,7 @@ function buildHistoryItem(entry) {
     lbl.textContent = label;
     const val = document.createElement('span');
     val.className = 'history__metric-value';
-    val.textContent = `${value.toFixed(1)} ${unit}`;
+    val.textContent = unit ? `${formatNumber(value)} ${unit}` : formatNumber(value);
     chip.appendChild(lbl);
     chip.appendChild(val);
     metrics.appendChild(chip);
@@ -158,7 +176,30 @@ function buildHistoryItem(entry) {
   return li;
 }
 
-function formatDate(dateStr) {
-  const [year, month, day] = dateStr.split('-');
-  return `${day}/${month}/${year}`;
+function exportCSV(metrics, profile) {
+  const heightCm = profile?.height ?? null;
+  const headers = ['fecha', 'peso_kg', 'grasa_%', 'musculo_kg', 'imc', 'notas'];
+  const rows = metrics.map(m => {
+    const bmi = heightCm ? calculateBMI(m.weight, heightCm) : null;
+    return [
+      m.date,
+      m.weight ?? '',
+      m.body_fat ?? '',
+      m.muscle_mass ?? '',
+      bmi ? bmi.toFixed(1) : '',
+      (m.notes ?? '').replace(/"/g, '""'),
+    ].map(v => `"${v}"`).join(',');
+  });
+
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const today = new Date().toISOString().split('T')[0];
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `metricas-${today}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
+

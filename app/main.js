@@ -10,6 +10,7 @@ import '../styles/components/modal.css';
 import '../styles/components/toast.css';
 import '../styles/components/nav.css';
 import '../styles/components/chart.css';
+import '../styles/components/profile-menu.css';
 import '../styles/views/auth.css';
 import '../styles/views/onboarding.css';
 import '../styles/views/dashboard.css';
@@ -62,9 +63,17 @@ async function router() {
     return;
   }
 
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   if (currentDestroyFn) {
     currentDestroyFn();
     currentDestroyFn = null;
+  }
+
+  if (!prefersReduced && appView.firstChild) {
+    appView.classList.add('view-exit');
+    await new Promise(r => setTimeout(r, 200));
+    appView.classList.remove('view-exit');
   }
 
   while (appView.firstChild) appView.removeChild(appView.firstChild);
@@ -75,6 +84,11 @@ async function router() {
   }
 
   currentDestroyFn = await route.mount(appView) || (() => {});
+
+  if (!prefersReduced) {
+    appView.classList.add('view-enter');
+    appView.addEventListener('animationend', () => appView.classList.remove('view-enter'), { once: true });
+  }
 }
 
 async function init() {
@@ -135,3 +149,9 @@ async function init() {
 }
 
 init();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}

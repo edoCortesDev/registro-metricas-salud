@@ -1,4 +1,4 @@
-import { signIn, signUp } from '../services/authService.js';
+import { signIn, signUp, resetPassword } from '../services/authService.js';
 import { showToast } from '../components/toast.js';
 import { sanitizeText } from '../utils/sanitize.js';
 import { t } from '../utils/i18n.js';
@@ -32,11 +32,11 @@ export async function mount(container) {
   header.appendChild(title);
   header.appendChild(subtitle);
 
+  // ---- Main login/signup form ----
   const form = document.createElement('form');
   form.className = 'auth__form form';
   form.setAttribute('novalidate', '');
 
-  // Email group
   const emailGroup = document.createElement('div');
   emailGroup.className = 'form__group';
 
@@ -63,7 +63,6 @@ export async function mount(container) {
   emailGroup.appendChild(emailInput);
   emailGroup.appendChild(emailError);
 
-  // Password group
   const passwordGroup = document.createElement('div');
   passwordGroup.className = 'form__group';
 
@@ -89,7 +88,6 @@ export async function mount(container) {
   passwordGroup.appendChild(passwordInput);
   passwordGroup.appendChild(passwordError);
 
-  // Confirm password group (signup only)
   const confirmGroup = document.createElement('div');
   confirmGroup.className = 'form__group';
   confirmGroup.style.display = 'none';
@@ -125,14 +123,75 @@ export async function mount(container) {
   toggleBtn.className = 'btn btn--ghost btn--block auth__toggle';
   toggleBtn.textContent = t('auth.toggle_signup');
 
+  // Forgot password link
+  const forgotLink = document.createElement('button');
+  forgotLink.type = 'button';
+  forgotLink.className = 'btn btn--ghost auth__forgot';
+  forgotLink.textContent = t('auth.forgot_password');
+
   form.appendChild(emailGroup);
   form.appendChild(passwordGroup);
   form.appendChild(confirmGroup);
   form.appendChild(submitBtn);
   form.appendChild(toggleBtn);
+  form.appendChild(forgotLink);
+
+  // ---- Forgot password mini-form ----
+  const resetSection = document.createElement('div');
+  resetSection.className = 'auth__reset-section';
+  resetSection.setAttribute('hidden', '');
+
+  const resetTitle = document.createElement('h2');
+  resetTitle.className = 'auth__reset-title';
+  resetTitle.textContent = t('auth.reset_title');
+
+  const resetForm = document.createElement('form');
+  resetForm.className = 'auth__form form';
+  resetForm.setAttribute('novalidate', '');
+
+  const resetEmailGroup = document.createElement('div');
+  resetEmailGroup.className = 'form__group';
+
+  const resetEmailLabel = document.createElement('label');
+  resetEmailLabel.className = 'form__label form__label--required';
+  resetEmailLabel.htmlFor = 'reset-email';
+  resetEmailLabel.textContent = t('auth.email_label');
+
+  const resetEmailInput = document.createElement('input');
+  resetEmailInput.type = 'email';
+  resetEmailInput.id = 'reset-email';
+  resetEmailInput.className = 'form__input';
+  resetEmailInput.placeholder = t('auth.email_placeholder');
+  resetEmailInput.autocomplete = 'email';
+
+  const resetEmailError = document.createElement('span');
+  resetEmailError.className = 'form__error';
+  resetEmailError.setAttribute('aria-live', 'polite');
+
+  resetEmailGroup.appendChild(resetEmailLabel);
+  resetEmailGroup.appendChild(resetEmailInput);
+  resetEmailGroup.appendChild(resetEmailError);
+
+  const resetSubmitBtn = document.createElement('button');
+  resetSubmitBtn.type = 'submit';
+  resetSubmitBtn.className = 'btn btn--primary btn--block';
+  resetSubmitBtn.textContent = t('auth.send_reset');
+
+  const backToLoginBtn = document.createElement('button');
+  backToLoginBtn.type = 'button';
+  backToLoginBtn.className = 'btn btn--ghost btn--block';
+  backToLoginBtn.textContent = t('auth.back_to_login');
+
+  resetForm.appendChild(resetEmailGroup);
+  resetForm.appendChild(resetSubmitBtn);
+  resetForm.appendChild(backToLoginBtn);
+
+  resetSection.appendChild(resetTitle);
+  resetSection.appendChild(resetForm);
 
   section.appendChild(header);
   section.appendChild(form);
+  section.appendChild(resetSection);
   container.appendChild(section);
 
   emailInput.focus();
@@ -155,11 +214,54 @@ export async function mount(container) {
       passwordInput.autocomplete = 'new-password';
       submitBtn.textContent = t('auth.signup');
       toggleBtn.textContent = t('auth.toggle_signin');
+      forgotLink.setAttribute('hidden', '');
     } else {
       confirmGroup.style.display = 'none';
       passwordInput.autocomplete = 'current-password';
       submitBtn.textContent = t('auth.signin');
       toggleBtn.textContent = t('auth.toggle_signup');
+      forgotLink.removeAttribute('hidden');
+    }
+  });
+
+  forgotLink.addEventListener('click', () => {
+    form.setAttribute('hidden', '');
+    resetSection.removeAttribute('hidden');
+    resetEmailInput.value = emailInput.value;
+    resetEmailInput.focus();
+  });
+
+  backToLoginBtn.addEventListener('click', () => {
+    resetSection.setAttribute('hidden', '');
+    form.removeAttribute('hidden');
+    emailInput.focus();
+  });
+
+  resetForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    resetEmailError.textContent = '';
+    resetEmailInput.classList.remove('form__input--error');
+
+    const email = sanitizeText(resetEmailInput.value.trim());
+    if (!email || !isValidEmail(email)) {
+      resetEmailError.textContent = t('auth.error_invalid_email');
+      resetEmailInput.classList.add('form__input--error');
+      return;
+    }
+
+    resetSubmitBtn.disabled = true;
+    resetSubmitBtn.textContent = t('auth.sending');
+
+    try {
+      await resetPassword(email);
+      showToast(t('auth.reset_sent'), 'success');
+      resetSection.setAttribute('hidden', '');
+      form.removeAttribute('hidden');
+    } catch {
+      showToast(t('errors.generic'), 'error');
+    } finally {
+      resetSubmitBtn.disabled = false;
+      resetSubmitBtn.textContent = t('auth.send_reset');
     }
   });
 
