@@ -2,8 +2,8 @@
 
 /* Light mode (default) */
 :root {
-  --color-bg:          #ffffff;
-  --color-bg-alt:      #f4f4f4;
+  --color-bg:          #fafaf8;
+  --color-bg-alt:      #f2f2ef;
   --color-text:        #111111;
   --color-text-muted:  #666666;
   --color-primary:     #3b82f6;
