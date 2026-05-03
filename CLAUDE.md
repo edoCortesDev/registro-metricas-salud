@@ -678,3 +678,34 @@ ALTER TABLE profiles ADD COLUMN sex text
 - `public/sw.js`
 - `public/icon-192.png`
 - `public/icon-512.png`
+
+---
+
+## 23. Reglas CSS — Atributo `hidden`
+
+Cuando un elemento se oculta/muestra con el atributo HTML `hidden`
+(via `setAttribute('hidden', '')` / `removeAttribute('hidden')`),
+**siempre** añadir en su regla CSS la contrarregla:
+
+```css
+.mi-elemento {
+  display: flex; /* o grid, block, etc. */
+}
+
+.mi-elemento[hidden] {
+  display: none;
+}
+```
+
+**Motivo:** `display: flex` (o cualquier valor distinto de `none`)
+tiene mayor especificidad que el `display: none` implícito del
+atributo `hidden`, por lo que lo sobreescribe y el elemento queda
+visible aunque tenga el atributo puesto.
+
+**Alternativa aceptada:** usar una clase CSS para mostrar/ocultar
+en lugar del atributo `hidden`, siempre que sea consistente dentro
+del mismo componente.
+
+**Ejemplo del bug que originó esta regla:** `.chart-custom-range`
+tenía `display: flex` en CSS pero se mostraba siempre aunque el JS
+le aplicara `hidden`, porque el CSS ganaba la cascada.

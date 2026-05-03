@@ -4,7 +4,6 @@ const NAV_ITEMS = [
   { hash: '#/dashboard', icon: '⊞', labelKey: 'nav.dashboard' },
   { hash: '#/add',       icon: '+',  labelKey: 'nav.add' },
   { hash: '#/history',   icon: '☰',  labelKey: 'nav.history' },
-  { hash: '#/settings',  icon: '⚙',  labelKey: 'nav.settings' },
 ];
 
 export function mountNav(container) {

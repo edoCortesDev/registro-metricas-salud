@@ -45,6 +45,10 @@
   margin-top: 0.75rem;
 }
 
+.chart-custom-range[hidden] {
+  display: none;
+}
+
 .chart-custom-range__input {
   flex: 1;
   min-width: 130px;

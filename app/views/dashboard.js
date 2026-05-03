@@ -22,7 +22,7 @@ export async function mount(container) {
 
   const addBtn = document.createElement('a');
   addBtn.href = '#/add';
-  addBtn.className = 'btn btn--primary btn--sm';
+  addBtn.className = 'btn btn--primary btn--sm dashboard__add-btn';
   addBtn.textContent = t('entry.add');
 
   const profileMenuContainer = document.createElement('div');
