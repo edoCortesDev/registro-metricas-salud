@@ -92,7 +92,7 @@ export async function mount(container) {
   // Confirm password group (signup only)
   const confirmGroup = document.createElement('div');
   confirmGroup.className = 'form__group';
-  confirmGroup.setAttribute('hidden', '');
+  confirmGroup.style.display = 'none';
 
   const confirmLabel = document.createElement('label');
   confirmLabel.className = 'form__label form__label--required';
@@ -151,12 +151,12 @@ export async function mount(container) {
     clearErrors();
 
     if (isSignup) {
-      confirmGroup.removeAttribute('hidden');
+      confirmGroup.style.display = '';
       passwordInput.autocomplete = 'new-password';
       submitBtn.textContent = t('auth.signup');
       toggleBtn.textContent = t('auth.toggle_signin');
     } else {
-      confirmGroup.setAttribute('hidden', '');
+      confirmGroup.style.display = 'none';
       passwordInput.autocomplete = 'current-password';
       submitBtn.textContent = t('auth.signin');
       toggleBtn.textContent = t('auth.toggle_signup');
