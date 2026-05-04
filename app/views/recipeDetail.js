@@ -211,40 +211,58 @@ export async function mount(container) {
   addToPlanBtn.className = 'btn btn--primary';
   addToPlanBtn.textContent = t('recipe.add_to_plan');
 
+  const planPicker = document.createElement('div');
+  planPicker.className = 'recipe-detail__plan-picker';
+  planPicker.setAttribute('hidden', '');
+
   const dateInput = document.createElement('input');
   dateInput.type = 'date';
   dateInput.className = 'recipe-detail__date-input input';
   dateInput.value = new Date().toISOString().split('T')[0];
-  dateInput.setAttribute('hidden', '');
   dateInput.setAttribute('aria-label', t('entry.date_label'));
+
+  const mealTypeSelect = document.createElement('select');
+  mealTypeSelect.className = 'recipe-detail__meal-type-select input';
+  mealTypeSelect.setAttribute('aria-label', t('mealplan.meal_type'));
+  [
+    { value: 'breakfast', label: t('recipes.filter_breakfast') },
+    { value: 'lunch',     label: t('recipes.filter_lunch') },
+    { value: 'snack',     label: t('recipes.filter_snack') },
+  ].forEach(({ value, label }) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    mealTypeSelect.appendChild(opt);
+  });
 
   const confirmPlanBtn = document.createElement('button');
   confirmPlanBtn.type = 'button';
   confirmPlanBtn.className = 'btn btn--primary btn--sm';
   confirmPlanBtn.textContent = t('common.confirm');
-  confirmPlanBtn.setAttribute('hidden', '');
+
+  planPicker.appendChild(dateInput);
+  planPicker.appendChild(mealTypeSelect);
+  planPicker.appendChild(confirmPlanBtn);
 
   let planPickerOpen = false;
 
   addToPlanBtn.addEventListener('click', () => {
     planPickerOpen = !planPickerOpen;
     if (planPickerOpen) {
-      dateInput.removeAttribute('hidden');
-      confirmPlanBtn.removeAttribute('hidden');
+      planPicker.removeAttribute('hidden');
     } else {
-      dateInput.setAttribute('hidden', '');
-      confirmPlanBtn.setAttribute('hidden', '');
+      planPicker.setAttribute('hidden', '');
     }
   });
 
   confirmPlanBtn.addEventListener('click', async () => {
     const date = dateInput.value;
-    if (!date) return;
+    const mealType = mealTypeSelect.value;
+    if (!date || !mealType) return;
     try {
-      await addToMealPlan(date, recipe.id, servings);
+      await addToMealPlan(date, recipe.id, servings, mealType);
       showToast(t('recipe.add_to_plan'), 'success');
-      dateInput.setAttribute('hidden', '');
-      confirmPlanBtn.setAttribute('hidden', '');
+      planPicker.setAttribute('hidden', '');
       planPickerOpen = false;
     } catch {
       showToast(t('errors.generic'), 'error');
@@ -252,8 +270,7 @@ export async function mount(container) {
   });
 
   planSection.appendChild(addToPlanBtn);
-  planSection.appendChild(dateInput);
-  planSection.appendChild(confirmPlanBtn);
+  planSection.appendChild(planPicker);
 
   section.appendChild(header);
   section.appendChild(macros);

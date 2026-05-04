@@ -166,6 +166,7 @@
   "mealplan.generate_shopping": "Lista de compras",
   "mealplan.add_recipe": "Añadir receta",
   "mealplan.recipe_added": "Receta añadida al plan",
+  "mealplan.meal_type": "Tipo de comida",
 
   "shopping.title": "Lista de compras",
   "shopping.export": "Exportar .txt",

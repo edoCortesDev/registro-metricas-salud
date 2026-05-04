@@ -275,14 +275,28 @@
   border-top: 1px solid var(--color-border);
 }
 
+.recipe-detail__plan-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
+  width: 100%;
+}
+
+.recipe-detail__plan-picker[hidden] {
+  display: none;
+}
+
 .recipe-detail__date-input {
   display: block;
   flex: 1;
   min-width: 10rem;
 }
 
-.recipe-detail__date-input[hidden] {
-  display: none;
+.recipe-detail__meal-type-select {
+  display: block;
+  flex: 1;
+  min-width: 8rem;
 }
 
 @media (min-width: 480px) {

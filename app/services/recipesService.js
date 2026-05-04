@@ -49,8 +49,12 @@ export async function removeFromMealPlan(id) {
   if (error) throw error;
 }
 
+const VALID_MEAL_TYPES = ['breakfast', 'lunch', 'snack'];
+
 export async function generateShoppingList(weekStart) {
-  const mealPlanItems = await getMealPlan(weekStart);
+  const allItems = await getMealPlan(weekStart);
+  // Only include items visible in the planner (valid meal_type)
+  const mealPlanItems = allItems.filter(mp => VALID_MEAL_TYPES.includes(mp.meal_type));
   if (mealPlanItems.length === 0) return [];
 
   const recipeIds = [...new Set(mealPlanItems.map(mp => mp.recipe_id))];
