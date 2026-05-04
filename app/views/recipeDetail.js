@@ -69,7 +69,7 @@ export async function mount(container) {
   macros.className = 'recipe-detail__macros';
 
   [
-    { key: 'recipe.calories', value: recipe.calories, unit: 'kcal' },
+    { key: 'recipe.calories', value: recipe.calories_per_serving, unit: 'kcal' },
     { key: 'recipe.protein',  value: recipe.protein,  unit: 'g' },
     { key: 'recipe.fat',      value: recipe.fat,      unit: 'g' },
     { key: 'recipe.carbs',    value: recipe.carbs,    unit: 'g' },

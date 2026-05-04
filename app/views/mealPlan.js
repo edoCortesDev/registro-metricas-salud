@@ -61,7 +61,7 @@ export async function mount(container) {
       dayLabel.textContent = formatDate(dateStr);
 
       const totalCals = dayItems.reduce((sum, p) => {
-        return sum + ((p.recipes?.calories || 0) * (p.servings || 1));
+        return sum + ((p.recipes?.calories_per_serving || 0) * (p.servings || 1));
       }, 0);
 
       const totalEl = document.createElement('span');
@@ -97,7 +97,7 @@ export async function mount(container) {
 
           const calsEl = document.createElement('span');
           calsEl.className = 'meal-plan__recipe-cals';
-          const itemCals = (item.recipes?.calories || 0) * (item.servings || 1);
+          const itemCals = (item.recipes?.calories_per_serving || 0) * (item.servings || 1);
           if (itemCals > 0) calsEl.textContent = `${formatNumber(itemCals, 0)} kcal`;
 
           const removeBtn = document.createElement('button');

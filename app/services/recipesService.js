@@ -1,4 +1,5 @@
 import supabase from './supabase.js';
+import { getState } from '../store/appState.js';
 
 export async function getRecipes(category = null) {
   let query = supabase.from('recipes').select('*').order('name_es');
@@ -22,7 +23,7 @@ export async function getMealPlan(weekStart) {
   const weekEnd = getWeekEnd(weekStart);
   const { data, error } = await supabase
     .from('meal_plans')
-    .select('*, recipes(id, name_es, name_de, calories, category)')
+    .select('*, recipes(id, name_es, name_de, calories_per_serving, category)')
     .gte('date', weekStart)
     .lte('date', weekEnd)
     .order('date');
@@ -31,10 +32,12 @@ export async function getMealPlan(weekStart) {
 }
 
 export async function addToMealPlan(date, recipeId, servings = 1) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const payload = { user_id: user.id, date, recipe_id: recipeId, servings };
   const { data, error } = await supabase
     .from('meal_plans')
-    .insert({ date, recipe_id: recipeId, servings })
-    .select('*, recipes(id, name_es, name_de, calories, category)')
+    .insert(payload)
+    .select('*, recipes(id, name_es, name_de, calories_per_serving, category)')
     .single();
   if (error) throw error;
   return data;
@@ -56,14 +59,18 @@ export async function generateShoppingList(weekStart) {
     .in('recipe_id', recipeIds);
   if (error) throw error;
 
+  const lang = getState('language') || 'es';
   const consolidated = {};
   (ingredients || []).forEach(ing => {
     const totalServings = mealPlanItems
       .filter(mp => mp.recipe_id === ing.recipe_id)
       .reduce((sum, mp) => sum + (mp.servings || 1), 0);
-    const key = `${ing.name.toLowerCase()}|${ing.unit}`;
+    const name = lang === 'de'
+      ? (ing.name_de || ing.name_es || '')
+      : (ing.name_es || ing.name_de || '');
+    const key = `${name.toLowerCase()}|${ing.unit}`;
     if (!consolidated[key]) {
-      consolidated[key] = { name: ing.name, quantity: 0, unit: ing.unit };
+      consolidated[key] = { name, quantity: 0, unit: ing.unit };
     }
     consolidated[key].quantity += (ing.quantity || 0) * totalServings;
   });
@@ -82,9 +89,10 @@ export async function getWaterLog(date) {
 }
 
 export async function updateWaterLog(date, glasses) {
+  const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from('water_logs')
-    .upsert({ date, glasses }, { onConflict: 'user_id,date' })
+    .upsert({ user_id: user.id, date, glasses }, { onConflict: 'user_id,date' })
     .select()
     .single();
   if (error) throw error;

@@ -16,7 +16,13 @@ export async function mount(container) {
   title.className = 'recipes__title';
   title.textContent = t('recipes.title');
 
+  const mealPlanLink = document.createElement('a');
+  mealPlanLink.href = '#/meal-plan';
+  mealPlanLink.className = 'btn btn--secondary btn--sm recipes__plan-link';
+  mealPlanLink.textContent = t('mealplan.title');
+
   header.appendChild(title);
+  header.appendChild(mealPlanLink);
 
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
@@ -94,8 +100,8 @@ export async function mount(container) {
 
       const cals = document.createElement('span');
       cals.className = 'recipe-card__calories';
-      if (recipe.calories != null) {
-        cals.textContent = `${recipe.calories} kcal`;
+      if (recipe.calories_per_serving != null) {
+        cals.textContent = `${recipe.calories_per_serving} kcal`;
       }
 
       meta.appendChild(cat);
