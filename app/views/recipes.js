@@ -1,11 +1,18 @@
-import { getRecipes } from '../services/recipesService.js';
+import { getRecipes, addToMealPlan } from '../services/recipesService.js';
 import { getState } from '../store/appState.js';
 import { showToast } from '../components/toast.js';
-import { t } from '../utils/i18n.js';
+import { t, formatDate } from '../utils/i18n.js';
 
 const CATEGORIES = ['all', 'breakfast', 'lunch', 'snack'];
 
 export async function mount(container) {
+  // Parse optional plan-selection params from the hash
+  const hashQuery = location.hash.split('?')[1] || '';
+  const params = new URLSearchParams(hashQuery);
+  const planDate = params.get('planDate');
+  const mealType = params.get('mealType');
+  const selectMode = !!(planDate && mealType);
+
   const section = document.createElement('section');
   section.className = 'recipes';
 
@@ -16,13 +23,34 @@ export async function mount(container) {
   title.className = 'recipes__title';
   title.textContent = t('recipes.title');
 
-  const mealPlanLink = document.createElement('a');
-  mealPlanLink.href = '#/meal-plan';
-  mealPlanLink.className = 'btn btn--secondary btn--sm recipes__plan-link';
-  mealPlanLink.textContent = t('mealplan.title');
-
   header.appendChild(title);
-  header.appendChild(mealPlanLink);
+
+  if (selectMode) {
+    // Banner: "Selecting for <day> · <mealType>" + back button
+    const banner = document.createElement('div');
+    banner.className = 'recipes__select-banner';
+
+    const bannerText = document.createElement('span');
+    bannerText.className = 'recipes__select-info';
+    const mealLabel = t(`recipes.filter_${mealType}`);
+    const dateLabel = formatDate(planDate);
+    bannerText.textContent = `${mealLabel} · ${dateLabel}`;
+
+    const backBtn = document.createElement('a');
+    backBtn.href = '#/meal-plan';
+    backBtn.className = 'btn btn--ghost btn--sm recipes__back-btn';
+    backBtn.textContent = t('common.back');
+
+    banner.appendChild(bannerText);
+    banner.appendChild(backBtn);
+    section.appendChild(banner);
+  } else {
+    const mealPlanLink = document.createElement('a');
+    mealPlanLink.href = '#/meal-plan';
+    mealPlanLink.className = 'btn btn--secondary btn--sm recipes__plan-link';
+    mealPlanLink.textContent = t('mealplan.title');
+    header.appendChild(mealPlanLink);
+  }
 
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
@@ -33,10 +61,13 @@ export async function mount(container) {
   const filters = document.createElement('div');
   filters.className = 'recipes__filters';
 
+  // Default category: match mealType param when in selectMode
+  const defaultCat = (selectMode && mealType !== 'all') ? mealType : 'all';
+
   CATEGORIES.forEach(cat => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `recipes__filter-btn${cat === 'all' ? ' recipes__filter-btn--active' : ''}`;
+    btn.className = `recipes__filter-btn${cat === defaultCat ? ' recipes__filter-btn--active' : ''}`;
     btn.dataset.cat = cat;
     btn.textContent = t(`recipes.filter_${cat}`);
     filters.appendChild(btn);
@@ -52,7 +83,7 @@ export async function mount(container) {
   container.appendChild(section);
 
   let allRecipes = [];
-  let activeCategory = 'all';
+  let activeCategory = defaultCat;
   let searchQuery = '';
 
   try {
@@ -83,8 +114,18 @@ export async function mount(container) {
 
     filtered.forEach(recipe => {
       const name = lang === 'de' ? (recipe.name_de || recipe.name_es) : (recipe.name_es || recipe.name_de);
-      const card = document.createElement('a');
-      card.href = `#/recipe-detail?id=${recipe.id}`;
+
+      // In selectMode, cards are divs that add to plan on click.
+      // Otherwise they are anchor links to recipe detail.
+      let card;
+      if (selectMode) {
+        card = document.createElement('button');
+        card.type = 'button';
+        card.dataset.recipeId = recipe.id;
+      } else {
+        card = document.createElement('a');
+        card.href = `#/recipe-detail?id=${recipe.id}`;
+      }
       card.className = 'recipe-card';
 
       const cardName = document.createElement('div');
@@ -128,4 +169,21 @@ export async function mount(container) {
     searchQuery = e.target.value;
     renderGrid();
   });
+
+  // Select-mode click: add to meal plan and return
+  if (selectMode) {
+    grid.addEventListener('click', async e => {
+      const card = e.target.closest('.recipe-card');
+      if (!card || !card.dataset.recipeId) return;
+      try {
+        card.disabled = true;
+        await addToMealPlan(planDate, card.dataset.recipeId, 1, mealType);
+        showToast(t('mealplan.recipe_added'), 'success');
+        location.hash = '#/meal-plan';
+      } catch {
+        card.disabled = false;
+        showToast(t('errors.generic'), 'error');
+      }
+    });
+  }
 }

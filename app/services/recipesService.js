@@ -31,9 +31,10 @@ export async function getMealPlan(weekStart) {
   return data || [];
 }
 
-export async function addToMealPlan(date, recipeId, servings = 1) {
+export async function addToMealPlan(date, recipeId, servings = 1, mealType = null) {
   const { data: { user } } = await supabase.auth.getUser();
   const payload = { user_id: user.id, date, recipe_id: recipeId, servings };
+  if (mealType) payload.meal_type = mealType;
   const { data, error } = await supabase
     .from('meal_plans')
     .insert(payload)

@@ -164,6 +164,8 @@
   "mealplan.title": "Wochenplaner",
   "mealplan.total_calories": "Gesamt",
   "mealplan.generate_shopping": "Einkaufsliste",
+  "mealplan.add_recipe": "Rezept hinzufügen",
+  "mealplan.recipe_added": "Rezept zum Plan hinzugefügt",
 
   "shopping.title": "Einkaufsliste",
   "shopping.export": ".txt exportieren",
