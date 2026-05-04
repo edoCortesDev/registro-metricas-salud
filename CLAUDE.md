@@ -809,3 +809,128 @@ con 102 recetas cargadas en español y alemán.
 - Recetas y ingredientes son de solo lectura para usuarios autenticados
 - meal_plans, shopping_lists y water_logs usan RLS: `user_id = auth.uid()`
 - No usar innerHTML con datos de recetas — usar textContent siempre
+
+## 25. Mejoras UI/UX — Sprint 3 (Visual & Animations)
+
+### 25.1 Cards con color por métrica (views/dashboard.js + CSS)
+Cada card del dashboard tiene su color de acento:
+- Peso → `--color-primary` (#3b82f6)
+- IMC → `--color-secondary` (#10b981) o `--color-danger` si >= 25
+- Grasa → #f97316 (naranja) — agregar como token `--color-warning`
+- Masa muscular → #8b5cf6 (púrpura) — agregar como token `--color-purple`
+
+Cada card tiene:
+- Borde izquierdo de 4px con su color
+- Ícono grande (emoji o SVG) en el fondo de la card con 10% opacidad
+- Fondo con gradiente muy sutil desde su color al 5% hasta transparente
+
+### 25.2 Colores por categoría en recetas (views/recipes.js + CSS)
+- Desayuno → fondo #fef3c7 (amarillo suave), texto #92400e
+- Almuerzo → fondo #d1fae5 (verde suave), texto #065f46
+- Snack → fondo #ede9fe (morado suave), texto #5b21b6
+  En dark mode usar versiones más oscuras de estos colores.
+
+### 25.3 Gradiente en botón primario (styles/components/button.css)
+```css
+.btn--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+}
+.btn--primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+}
+```
+
+### 25.4 Counter animation en números del dashboard
+Al cargar el dashboard, los números cuentan desde 0 hasta el valor
+real en 800ms con easing. Implementar en vanilla JS con
+requestAnimationFrame. Aplicar a: peso, IMC, grasa, masa muscular.
+
+### 25.5 Stagger animation en cards al cargar
+Las cards del dashboard aparecen una tras otra con 100ms de delay
+entre cada una. Usar CSS animations con `animation-delay` calculado
+por índice. Respetar `prefers-reduced-motion`.
+
+### 25.6 Animación de entrada para recetas (views/recipes.js)
+Las tarjetas del grid de recetas aparecen en cascada con fade +
+translateY(20px) → translateY(0). Delay de 50ms entre cada tarjeta.
+Respetar `prefers-reduced-motion`.
+
+### 25.7 Animación del gráfico
+Chart.js ya tiene animación built-in. Activarla con:
+```js
+animation: {
+  duration: 1000,
+  easing: 'easeInOutQuart'
+}
+```
+
+### 25.8 Vasos de agua animados (dashboard.js)
+Al hacer click en un vaso:
+- Animación de llenado: el vaso se llena con un wave animation en CSS
+- Color cambia de `--color-border` a `--color-primary` con transition
+- Scale up 1.2 → 1.0 con spring effect (CSS transform)
+
+### 25.9 Animación de éxito al guardar registro
+Después de guardar en addEntry.js, mostrar un checkmark animado
+antes de redirigir al dashboard:
+- Círculo verde que se dibuja (stroke-dashoffset animation)
+- Checkmark que aparece dentro
+- Duración total: 600ms
+- Luego redirigir automáticamente
+
+### 25.10 Swipe para eliminar en historial (views/history.js)
+En mobile, swipe hacia la izquierda en un registro revela botones
+de Editar (azul) y Eliminar (rojo) debajo. Implementar con:
+- Touch events: touchstart, touchmove, touchend
+- Threshold: 80px para revelar acciones
+- Snap back si no supera el threshold
+- Sin librerías externas
+
+### 25.11 Hover effects en cards (CSS global)
+```css
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+```
+
+### 25.12 Efecto ripple en botón primario
+Al hacer click en `.btn--primary`, crear un efecto ripple circular
+que se expande desde el punto de click. Implementar con JS vanilla
++ CSS, sin librerías.
+
+### 25.13 Rediseño planificador semanal (views/mealPlan.js)
+Grid tipo tabla:
+- Columnas: Desayuno | Almuerzo | Snack
+- Filas: Lunes a Domingo
+- Header de días: fondo `--color-primary`, texto blanco
+- Header categorías: fondo `--color-bg-alt`
+- Celda vacía: botón "+" con borde punteado
+- Celda con receta: gradiente de `--color-secondary`
+- Total calorías del día en el header de cada fila
+- En mobile: cada día es una card vertical con las 3 categorías
+- La columna `meal_type` ya fue agregada a `meal_plans` en Supabase
+
+### 25.14 Tokens nuevos a agregar en tokens.css
+```css
+--color-warning: #f97316;
+--color-purple:  #8b5cf6;
+--color-breakfast: #fef3c7;
+--color-lunch:     #d1fae5;
+--color-snack:     #ede9fe;
+```
+
+### Archivos a modificar
+- `styles/tokens.css` — nuevos tokens
+- `styles/components/button.css` — gradiente y ripple
+- `styles/components/card.css` — hover effects
+- `app/views/dashboard.js` — colores, counter animation, stagger, agua
+- `app/views/recipes.js` — colores por categoría, stagger
+- `app/views/history.js` — swipe gesture
+- `app/views/addEntry.js` — animación de éxito
+- `app/views/mealPlan.js` — rediseño completo grid
+- `app/components/chart.js` — animación Chart.js
+- `styles/base.css` — animaciones globales

@@ -162,6 +162,19 @@ async function init() {
 
 init();
 
+// ── Ripple effect on .btn--primary clicks ────────────────────────
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn--primary');
+  if (!btn || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const rect = btn.getBoundingClientRect();
+  const ripple = document.createElement('span');
+  ripple.className = 'btn__ripple';
+  ripple.style.setProperty('--ripple-x', `${e.clientX - rect.left}px`);
+  ripple.style.setProperty('--ripple-y', `${e.clientY - rect.top}px`);
+  btn.appendChild(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+});
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});

@@ -72,6 +72,80 @@
   border-color: var(--color-primary);
 }
 
+/* ── Category colors ─────────────────────────────────────────────── */
+.recipe-card--breakfast {
+  --cat-bg:     #fef3c7;
+  --cat-text:   #92400e;
+  --cat-border: #fbbf24;
+}
+
+.recipe-card--lunch {
+  --cat-bg:     #d1fae5;
+  --cat-text:   #065f46;
+  --cat-border: #34d399;
+}
+
+.recipe-card--snack {
+  --cat-bg:     #ede9fe;
+  --cat-text:   #5b21b6;
+  --cat-border: #a78bfa;
+}
+
+.recipe-card--breakfast,
+.recipe-card--lunch,
+.recipe-card--snack {
+  background: var(--cat-bg);
+  border-color: var(--cat-border);
+}
+
+.recipe-card--breakfast .recipe-card__name,
+.recipe-card--breakfast .recipe-card__category,
+.recipe-card--lunch .recipe-card__name,
+.recipe-card--lunch .recipe-card__category,
+.recipe-card--snack .recipe-card__name,
+.recipe-card--snack .recipe-card__category {
+  color: var(--cat-text);
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] .recipe-card--breakfast {
+  --cat-bg:     #78350f;
+  --cat-text:   #fef3c7;
+  --cat-border: #92400e;
+}
+
+[data-theme="dark"] .recipe-card--lunch {
+  --cat-bg:     #064e3b;
+  --cat-text:   #d1fae5;
+  --cat-border: #047857;
+}
+
+[data-theme="dark"] .recipe-card--snack {
+  --cat-bg:     #4c1d95;
+  --cat-text:   #ede9fe;
+  --cat-border: #6d28d9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .recipe-card--breakfast {
+    --cat-bg:     #78350f;
+    --cat-text:   #fef3c7;
+    --cat-border: #92400e;
+  }
+
+  :root:not([data-theme="light"]) .recipe-card--lunch {
+    --cat-bg:     #064e3b;
+    --cat-text:   #d1fae5;
+    --cat-border: #047857;
+  }
+
+  :root:not([data-theme="light"]) .recipe-card--snack {
+    --cat-bg:     #4c1d95;
+    --cat-text:   #ede9fe;
+    --cat-border: #6d28d9;
+  }
+}
+
 .recipe-card__name {
   font-weight: 600;
   font-size: 0.9375rem;
@@ -96,6 +170,23 @@
   font-size: 0.8125rem;
   color: var(--color-secondary);
   font-weight: 600;
+}
+
+/* ── Stagger animation ──────────────────────────────────────────── */
+@keyframes recipeCardIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.recipe-card--animated {
+  animation: recipeCardIn 0.35s ease both;
+  animation-delay: var(--recipe-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipe-card--animated {
+    animation: none;
+  }
 }
 
 @media (min-width: 480px) {

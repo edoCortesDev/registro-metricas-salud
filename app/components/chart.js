@@ -118,6 +118,10 @@ export function renderChart(canvasId, metrics, filter = '30d', profile = null) {
     type: 'line',
     data: { labels, datasets },
     options: {
+      animation: {
+        duration: 1000,
+        easing: 'easeInOutQuart',
+      },
       responsive: true,
       maintainAspectRatio: true,
       interaction: { mode: 'index', intersect: false },

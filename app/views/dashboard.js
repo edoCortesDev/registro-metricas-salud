@@ -31,10 +31,10 @@ export async function mount(container) {
   const metricsGrid = document.createElement('div');
   metricsGrid.className = 'dashboard__metrics';
 
-  const weightCard = makeCard('card--primary', t('dashboard.weight'), 'kg', 'weight-value', 'weight-trend', 'weight-date');
-  const bmiCard    = makeCard('', t('dashboard.bmi'), '', 'bmi-value', null, 'bmi-category');
-  const fatCard    = makeCard('', t('dashboard.fat'), '%', 'fat-value', 'fat-trend', null);
-  const muscleCard = makeCard('card--success', t('dashboard.muscle'), 'kg', 'muscle-value', 'muscle-trend', null);
+  const weightCard = makeCard('dashboard__metric-card--weight', t('dashboard.weight'), 'kg', 'weight-value', 'weight-trend', 'weight-date', '⚖️');
+  const bmiCard    = makeCard('dashboard__metric-card--bmi', t('dashboard.bmi'), '', 'bmi-value', null, 'bmi-category', '📊');
+  const fatCard    = makeCard('dashboard__metric-card--fat', t('dashboard.fat'), '%', 'fat-value', 'fat-trend', null, '🔥');
+  const muscleCard = makeCard('dashboard__metric-card--muscle', t('dashboard.muscle'), 'kg', 'muscle-value', 'muscle-trend', null, '💪');
 
   metricsGrid.appendChild(weightCard);
   metricsGrid.appendChild(bmiCard);
@@ -241,6 +241,14 @@ export async function mount(container) {
     const idx = parseInt(btn.dataset.index, 10);
     glassCount = idx < glassCount ? idx : idx + 1;
     renderWaterGlasses();
+
+    if (!prefersReducedMotion) {
+      btn.classList.add('dashboard__water-glass--spring');
+      btn.addEventListener('animationend', () => {
+        btn.classList.remove('dashboard__water-glass--spring');
+      }, { once: true });
+    }
+
     try {
       await updateWaterLog(today, glassCount);
     } catch {
@@ -254,9 +262,17 @@ export async function mount(container) {
   };
 }
 
-function makeCard(extraClass, label, unit, valueId, trendId, subtitleId) {
+function makeCard(modClass, label, unit, valueId, trendId, subtitleId, icon) {
   const card = document.createElement('div');
-  card.className = `card dashboard__metric-card ${extraClass}`.trim();
+  card.className = `card dashboard__metric-card ${modClass}`.trim();
+
+  if (icon) {
+    const iconEl = document.createElement('span');
+    iconEl.className = 'dashboard__card-icon';
+    iconEl.setAttribute('aria-hidden', 'true');
+    iconEl.textContent = icon;
+    card.appendChild(iconEl);
+  }
 
   const labelEl = document.createElement('div');
   labelEl.className = 'card__label';
@@ -296,6 +312,33 @@ function makeCard(extraClass, label, unit, valueId, trendId, subtitleId) {
   }
 
   return card;
+}
+
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function animateCounter(el, target, formatFn) {
+  if (!el || target == null || isNaN(Number(target))) return;
+  if (prefersReducedMotion) {
+    el.textContent = formatFn ? formatFn(target) : formatNumber(target);
+    return;
+  }
+  const duration = 800;
+  const numTarget = Number(target);
+  const start = performance.now();
+
+  function step(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = (numTarget * eased).toFixed(1);
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      el.textContent = formatFn ? formatFn(numTarget) : formatNumber(numTarget);
+    }
+  }
+
+  requestAnimationFrame(step);
 }
 
 function fatThreshold(sex) {
@@ -338,7 +381,7 @@ function updateMetricCards(metrics, profile) {
   if (!latest) return;
 
   // Weight
-  if (weightEl) weightEl.textContent = latest.weight != null ? formatNumber(latest.weight) : '—';
+  if (weightEl) animateCounter(weightEl, latest.weight, formatNumber);
   if (weightDate) weightDate.textContent = latest.date ? formatDate(latest.date) : '';
   if (prev?.weight != null && latest.weight != null) {
     setTrend('weight-trend', latest.weight - prev.weight, false);
@@ -347,8 +390,14 @@ function updateMetricCards(metrics, profile) {
   // BMI
   if (bmiEl && profile?.height) {
     const bmi = calculateBMI(latest.weight, profile.height);
-    bmiEl.textContent = bmi ? formatNumber(bmi) : '—';
+    if (bmi) {
+      animateCounter(bmiEl, bmi, formatNumber);
+    } else {
+      bmiEl.textContent = '—';
+    }
     bmiEl.style.color = bmi >= 25 ? 'var(--color-danger)' : '';
+    const bmiCard = bmiEl.closest('.dashboard__metric-card--bmi');
+    if (bmiCard) bmiCard.classList.toggle('bmi--danger', !!bmi && bmi >= 25);
     if (bmiCat) {
       const cat = getBMICategory(bmi);
       bmiCat.textContent = cat ? t(`dashboard.bmi_${cat}`) : '';
@@ -357,7 +406,11 @@ function updateMetricCards(metrics, profile) {
 
   // Fat
   if (fatEl) {
-    fatEl.textContent = latest.body_fat != null ? formatNumber(latest.body_fat) : '—';
+    if (latest.body_fat != null) {
+      animateCounter(fatEl, latest.body_fat, formatNumber);
+    } else {
+      fatEl.textContent = '—';
+    }
     const threshold = fatThreshold(profile?.sex);
     fatEl.style.color = (latest.body_fat != null && latest.body_fat > threshold)
       ? 'var(--color-danger)' : '';
@@ -367,7 +420,13 @@ function updateMetricCards(metrics, profile) {
   }
 
   // Muscle
-  if (muscleEl) muscleEl.textContent = latest.muscle_mass != null ? formatNumber(latest.muscle_mass) : '—';
+  if (muscleEl) {
+    if (latest.muscle_mass != null) {
+      animateCounter(muscleEl, latest.muscle_mass, formatNumber);
+    } else {
+      muscleEl.textContent = '—';
+    }
+  }
   if (prev?.muscle_mass != null && latest.muscle_mass != null) {
     setTrend('muscle-trend', latest.muscle_mass - prev.muscle_mass, true);
   }

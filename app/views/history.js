@@ -47,8 +47,9 @@ export async function mount(container) {
     const list = document.createElement('ul');
     list.className = 'history__list';
 
-    metrics.forEach(entry => {
-      list.appendChild(buildHistoryItem(entry, profile));
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    metrics.forEach((entry, index) => {
+      list.appendChild(buildHistoryItem(entry, profile, index, prefersReduced));
     });
 
     listContainer.appendChild(list);
@@ -98,10 +99,44 @@ export async function mount(container) {
   return () => unsub();
 }
 
-function buildHistoryItem(entry, profile) {
+const SWIPE_REVEAL_WIDTH = 160;
+const SWIPE_THRESHOLD    = 80;
+
+function buildHistoryItem(entry, profile, index = 0, prefersReduced = false) {
   const li = document.createElement('li');
-  li.className = 'history__item';
+  li.className = 'history__item history__item--animated';
   li.dataset.id = entry.id;
+  if (!prefersReduced) {
+    li.style.setProperty('--history-delay', `${Math.min(index * 80, 720)}ms`);
+  }
+
+  // ── Swipe-reveal buttons (behind the content on mobile) ─────────
+  const swipeActions = document.createElement('div');
+  swipeActions.className = 'history__swipe-actions';
+  swipeActions.setAttribute('aria-hidden', 'true');
+
+  const swipeEditBtn = document.createElement('button');
+  swipeEditBtn.type = 'button';
+  swipeEditBtn.className = 'history__swipe-btn history__swipe-btn--edit';
+  swipeEditBtn.dataset.action = 'edit';
+  swipeEditBtn.dataset.id = entry.id;
+  swipeEditBtn.textContent = t('common.edit');
+
+  const swipeDelBtn = document.createElement('button');
+  swipeDelBtn.type = 'button';
+  swipeDelBtn.className = 'history__swipe-btn history__swipe-btn--delete';
+  swipeDelBtn.dataset.action = 'delete';
+  swipeDelBtn.dataset.id = entry.id;
+  swipeDelBtn.dataset.date = formatDate(entry.date);
+  swipeDelBtn.dataset.weight = entry.weight != null ? entry.weight.toFixed(1) : '—';
+  swipeDelBtn.textContent = t('common.delete');
+
+  swipeActions.appendChild(swipeEditBtn);
+  swipeActions.appendChild(swipeDelBtn);
+
+  // ── Swipe content wrapper ────────────────────────────────────────
+  const swipeContent = document.createElement('div');
+  swipeContent.className = 'history__swipe-content';
 
   const itemHeader = document.createElement('div');
   itemHeader.className = 'history__item-header';
@@ -141,14 +176,20 @@ function buildHistoryItem(entry, profile) {
 
   const bmi = profile?.height ? calculateBMI(entry.weight, profile.height) : null;
 
-  const items = [
+  if (bmi) {
+    if (bmi < 25) swipeContent.classList.add('history__swipe-content--bmi-normal');
+    else if (bmi < 30) swipeContent.classList.add('history__swipe-content--bmi-overweight');
+    else swipeContent.classList.add('history__swipe-content--bmi-obese');
+  }
+
+  const metricItems = [
     { label: t('dashboard.weight'), value: entry.weight, unit: 'kg' },
     { label: t('dashboard.fat'), value: entry.body_fat, unit: '%' },
     { label: t('dashboard.muscle'), value: entry.muscle_mass, unit: 'kg' },
     { label: t('dashboard.bmi'), value: bmi, unit: '' },
   ];
 
-  items.forEach(({ label, value, unit }) => {
+  metricItems.forEach(({ label, value, unit }) => {
     if (value == null) return;
     const chip = document.createElement('span');
     chip.className = 'history__metric-chip';
@@ -163,17 +204,67 @@ function buildHistoryItem(entry, profile) {
     metrics.appendChild(chip);
   });
 
-  li.appendChild(itemHeader);
-  li.appendChild(metrics);
+  swipeContent.appendChild(itemHeader);
+  swipeContent.appendChild(metrics);
 
   if (entry.notes) {
     const notes = document.createElement('p');
     notes.className = 'history__item-notes';
     notes.textContent = entry.notes;
-    li.appendChild(notes);
+    swipeContent.appendChild(notes);
   }
 
+  li.appendChild(swipeActions);
+  li.appendChild(swipeContent);
+
+  addSwipeBehavior(li, swipeContent);
+
   return li;
+}
+
+function addSwipeBehavior(li, content) {
+  let startX = 0, startY = 0, baseX = 0, isRevealed = false, didSwipe = false;
+
+  content.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    baseX  = isRevealed ? -SWIPE_REVEAL_WIDTH : 0;
+    didSwipe = false;
+    content.style.transition = 'none';
+  }, { passive: true });
+
+  content.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (!didSwipe && Math.abs(dy) > Math.abs(dx)) return;
+    didSwipe = true;
+    const newX = Math.max(-SWIPE_REVEAL_WIDTH, Math.min(0, baseX + dx));
+    content.style.transform = `translateX(${newX}px)`;
+  }, { passive: true });
+
+  content.addEventListener('touchend', e => {
+    if (!didSwipe) return;
+    content.style.transition = '';
+    const dx = e.changedTouches[0].clientX - startX;
+    const finalX = baseX + dx;
+
+    if (finalX < -SWIPE_THRESHOLD) {
+      content.style.transform = `translateX(-${SWIPE_REVEAL_WIDTH}px)`;
+      isRevealed = true;
+    } else {
+      content.style.transform = 'translateX(0)';
+      isRevealed = false;
+    }
+  });
+
+  // Close swipe when touching outside
+  document.addEventListener('touchstart', e => {
+    if (isRevealed && !li.contains(e.target)) {
+      content.style.transition = '';
+      content.style.transform = 'translateX(0)';
+      isRevealed = false;
+    }
+  }, { passive: true });
 }
 
 function exportCSV(metrics, profile) {

@@ -112,7 +112,9 @@ export async function mount(container) {
       return;
     }
 
-    filtered.forEach(recipe => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    filtered.forEach((recipe, index) => {
       const name = lang === 'de' ? (recipe.name_de || recipe.name_es) : (recipe.name_es || recipe.name_de);
 
       // In selectMode, cards are divs that add to plan on click.
@@ -126,7 +128,11 @@ export async function mount(container) {
         card = document.createElement('a');
         card.href = `#/recipe-detail?id=${recipe.id}`;
       }
-      card.className = 'recipe-card';
+      const catClass = recipe.category ? `recipe-card--${recipe.category}` : '';
+      card.className = `recipe-card ${catClass} recipe-card--animated`.trim();
+      if (!prefersReduced) {
+        card.style.setProperty('--recipe-delay', `${Math.min(index * 50, 600)}ms`);
+      }
 
       const cardName = document.createElement('div');
       cardName.className = 'recipe-card__name';

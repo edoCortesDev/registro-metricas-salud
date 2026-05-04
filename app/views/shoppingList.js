@@ -38,7 +38,7 @@ export async function mount(container) {
 
   const exportBtn = document.createElement('button');
   exportBtn.type = 'button';
-  exportBtn.className = 'btn btn--secondary btn--sm';
+  exportBtn.className = 'btn btn--primary btn--sm';
   exportBtn.textContent = t('shopping.export');
 
   const backBtn = document.createElement('a');
@@ -81,11 +81,14 @@ export async function mount(container) {
     others:     '🛒 Otros / Sonstiges',
   };
 
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let globalItemIndex = 0;
+
   Object.entries(groups).forEach(([groupKey, groupItems]) => {
     if (groupItems.length === 0) return;
 
     const groupEl = document.createElement('div');
-    groupEl.className = 'shopping-list__group';
+    groupEl.className = `shopping-list__group shopping-list__group--${groupKey}`;
 
     const groupTitle = document.createElement('h2');
     groupTitle.className = 'shopping-list__group-title';
@@ -98,7 +101,11 @@ export async function mount(container) {
     groupItems.forEach(item => {
       const itemKey = `${item.name}|${item.unit}`;
       const li = document.createElement('li');
-      li.className = `shopping-list__item${checked[itemKey] ? ' shopping-list__item--checked' : ''}`;
+      li.className = `shopping-list__item shopping-list__item--animated${checked[itemKey] ? ' shopping-list__item--checked' : ''}`;
+      if (!prefersReduced) {
+        li.style.setProperty('--item-delay', `${Math.min(globalItemIndex * 45, 600)}ms`);
+      }
+      globalItemIndex++;
 
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
@@ -111,6 +118,22 @@ export async function mount(container) {
       label.className = 'shopping-list__item-label';
       label.setAttribute('for', checkbox.id);
 
+      // Custom checkbox visual with animated checkmark
+      const checkBox = document.createElement('span');
+      checkBox.className = 'shopping-list__check-box';
+      checkBox.setAttribute('aria-hidden', 'true');
+
+      const checkSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      checkSvg.setAttribute('class', 'shopping-list__check-icon');
+      checkSvg.setAttribute('viewBox', '0 0 12 10');
+      checkSvg.setAttribute('aria-hidden', 'true');
+
+      const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      checkPath.setAttribute('d', 'M1.5 5l3 3 6-6');
+
+      checkSvg.appendChild(checkPath);
+      checkBox.appendChild(checkSvg);
+
       const nameSpan = document.createElement('span');
       nameSpan.className = 'shopping-list__item-name';
       nameSpan.textContent = item.name;
@@ -121,6 +144,7 @@ export async function mount(container) {
         qtySpan.textContent = `${Math.round(item.quantity * 10) / 10} ${item.unit || ''}`.trim();
       }
 
+      label.appendChild(checkBox);
       label.appendChild(nameSpan);
       label.appendChild(qtySpan);
       li.appendChild(checkbox);

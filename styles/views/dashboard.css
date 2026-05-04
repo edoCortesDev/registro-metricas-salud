@@ -21,6 +21,54 @@
   margin-bottom: 1.5rem;
 }
 
+/* ── Card accent colors ─────────────────────────────────────────── */
+.dashboard__metric-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard__card-icon {
+  position: absolute;
+  right: 0.25rem;
+  bottom: -0.25rem;
+  font-size: 3rem;
+  opacity: 0.1;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  transform: rotate(-8deg);
+}
+
+.dashboard__metric-card--weight {
+  border-left: 4px solid var(--color-primary);
+  background: linear-gradient(135deg, rgba(59,130,246,0.06) 0%, transparent 55%),
+              var(--color-bg-alt);
+}
+
+.dashboard__metric-card--bmi {
+  border-left: 4px solid var(--color-secondary);
+  background: linear-gradient(135deg, rgba(16,185,129,0.06) 0%, transparent 55%),
+              var(--color-bg-alt);
+}
+
+.dashboard__metric-card--bmi.bmi--danger {
+  border-left-color: var(--color-danger);
+  background: linear-gradient(135deg, rgba(239,68,68,0.06) 0%, transparent 55%),
+              var(--color-bg-alt);
+}
+
+.dashboard__metric-card--fat {
+  border-left: 4px solid var(--color-warning);
+  background: linear-gradient(135deg, rgba(249,115,22,0.06) 0%, transparent 55%),
+              var(--color-bg-alt);
+}
+
+.dashboard__metric-card--muscle {
+  border-left: 4px solid var(--color-purple);
+  background: linear-gradient(135deg, rgba(139,92,246,0.06) 0%, transparent 55%),
+              var(--color-bg-alt);
+}
+
 .dashboard__metric-value-row {
   display: flex;
   align-items: baseline;
@@ -113,6 +161,45 @@
 .dashboard__water-glass:hover {
   border-color: var(--color-primary);
   filter: none;
+}
+
+@keyframes glassSpring {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.25); }
+  65%  { transform: scale(0.92); }
+  85%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+.dashboard__water-glass--spring {
+  animation: glassSpring 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard__water-glass--spring {
+    animation: none;
+  }
+}
+
+/* ── Stagger animation para cards ───────────────────────────────── */
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dashboard__metrics .dashboard__metric-card {
+  animation: cardSlideIn 0.4s ease both;
+}
+
+.dashboard__metrics .dashboard__metric-card:nth-child(1) { animation-delay: 0ms; }
+.dashboard__metrics .dashboard__metric-card:nth-child(2) { animation-delay: 100ms; }
+.dashboard__metrics .dashboard__metric-card:nth-child(3) { animation-delay: 200ms; }
+.dashboard__metrics .dashboard__metric-card:nth-child(4) { animation-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard__metrics .dashboard__metric-card {
+    animation: none;
+  }
 }
 
 @media (max-width: 767px) {

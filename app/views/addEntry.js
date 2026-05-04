@@ -192,7 +192,12 @@ export async function mount(container) {
         const created = await addMetric({ ...payload, user_id: user.id });
         setState('metrics', [created, ...getState('metrics')]);
         showToast(t('entry.added'), 'success');
-        location.hash = '#/dashboard';
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReduced) {
+          location.hash = '#/dashboard';
+        } else {
+          showSuccessAnimation(() => { location.hash = '#/dashboard'; });
+        }
       }
     } catch (err) {
       showToast(t('errors.generic'), 'error');
@@ -274,4 +279,34 @@ function makeTextareaGroup(id, label, opts = {}) {
 
 function getTodayDate() {
   return new Date().toISOString().split('T')[0];
+}
+
+function showSuccessAnimation(onDone) {
+  const overlay = document.createElement('div');
+  overlay.className = 'success-overlay';
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'success-checkmark');
+  svg.setAttribute('viewBox', '0 0 52 52');
+  svg.setAttribute('aria-hidden', 'true');
+
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('class', 'success-checkmark__circle');
+  circle.setAttribute('cx', '26');
+  circle.setAttribute('cy', '26');
+  circle.setAttribute('r', '25');
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('class', 'success-checkmark__check');
+  path.setAttribute('d', 'M14.1 27.2l7.1 7.2 16.7-16.8');
+
+  svg.appendChild(circle);
+  svg.appendChild(path);
+  overlay.appendChild(svg);
+  document.body.appendChild(overlay);
+
+  setTimeout(() => {
+    overlay.remove();
+    onDone();
+  }, 750);
 }
