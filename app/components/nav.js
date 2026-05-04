@@ -1,9 +1,11 @@
 import { t } from '../utils/i18n.js';
 
+// Settings se accede desde el menú de perfil — no agregar aquí.
 const NAV_ITEMS = [
   { hash: '#/dashboard', icon: '⊞', labelKey: 'nav.dashboard' },
   { hash: '#/add',       icon: '+',  labelKey: 'nav.add' },
   { hash: '#/history',   icon: '☰',  labelKey: 'nav.history' },
+  { hash: '#/recipes',   icon: '📖', labelKey: 'nav.recipes' },
 ];
 
 export function mountNav(container) {

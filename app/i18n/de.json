@@ -141,5 +141,33 @@
   "common.confirm": "Bestätigen",
   "common.delete": "Löschen",
   "common.edit": "Bearbeiten",
-  "common.back": "Zurück"
+  "common.back": "Zurück",
+
+  "nav.recipes": "Rezepte",
+
+  "recipes.title": "Rezeptbuch",
+  "recipes.search": "Rezept suchen...",
+  "recipes.filter_all": "Alle",
+  "recipes.filter_breakfast": "Frühstück",
+  "recipes.filter_lunch": "Mittagessen",
+  "recipes.filter_snack": "Snack",
+
+  "recipe.calories": "Kalorien",
+  "recipe.protein": "Protein",
+  "recipe.fat": "Fett",
+  "recipe.carbs": "Kohlenhydrate",
+  "recipe.servings": "Portionen",
+  "recipe.ingredients": "Zutaten",
+  "recipe.instructions": "Zubereitung",
+  "recipe.add_to_plan": "Zum Plan hinzufügen",
+
+  "mealplan.title": "Wochenplaner",
+  "mealplan.total_calories": "Gesamt",
+  "mealplan.generate_shopping": "Einkaufsliste",
+
+  "shopping.title": "Einkaufsliste",
+  "shopping.export": ".txt exportieren",
+
+  "dashboard.water": "Wasser",
+  "dashboard.water_goal": "{glasses} / 8 Gläser"
 }

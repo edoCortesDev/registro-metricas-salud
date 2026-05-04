@@ -709,3 +709,103 @@ del mismo componente.
 **Ejemplo del bug que originó esta regla:** `.chart-custom-range`
 tenía `display: flex` en CSS pero se mostraba siempre aunque el JS
 le aplicara `hidden`, porque el CSS ganaba la cascada.
+
+## 24. Módulo Recetario — Sprint 3
+
+### Contexto
+Las tablas `recipes`, `recipe_ingredients`, `meal_plans`,
+`shopping_lists` y `water_logs` ya están creadas en Supabase
+con 102 recetas cargadas en español y alemán.
+
+### 24.1 Servicio (services/recipesService.js)
+- `getRecipes(category?)` → todas o filtradas por categoría
+- `getRecipeById(id)` → receta con sus ingredientes
+- `getMealPlan(weekStart)` → plan de la semana
+- `addToMealPlan(date, recipeId, servings)` → agregar receta al plan
+- `removeFromMealPlan(id)` → eliminar del plan
+- `generateShoppingList(weekStart)` → consolidar ingredientes del plan
+- `getWaterLog(date)` → vasos bebidos hoy
+- `updateWaterLog(date, glasses)` → actualizar vasos
+
+### 24.2 Vista Recetario (views/recipes.js)
+- Grid de tarjetas: nombre, calorías, categoría
+- El nombre se muestra en el idioma activo (name_es / name_de)
+- Filtro por categoría: todos / desayuno / almuerzo / snack
+- Buscador por nombre en tiempo real (sin llamadas extra a Supabase)
+- Al hacer click abre el detalle
+
+### 24.3 Vista Detalle de Receta (views/recipeDetail.js)
+- Nombre e instrucciones en idioma activo
+- Macros: calorías, proteína, grasa, carbohidratos
+- Lista de ingredientes con cantidad y unidad
+- Control de porciones: selector numérico (default: 1)
+  que ajusta cantidades proporcionalmente en tiempo real
+- Botón "Agregar al plan del día" → abre selector de fecha
+- CSS en styles/views/recipe-detail.css
+
+### 24.4 Vista Planificador Semanal (views/mealPlan.js)
+- Muestra 7 días desde hoy
+- Cada día lista las recetas asignadas con nombre y calorías
+- Botón eliminar por receta
+- Total de calorías del día sumado automáticamente
+- Botón "Generar lista de compras" consolida toda la semana
+- CSS en styles/views/meal-plan.css
+
+### 24.5 Vista Lista de Compras (views/shoppingList.js)
+- Ingredientes consolidados de todas las recetas del plan
+- Cantidades sumadas cuando el mismo ingrediente aparece varias veces
+- Agrupados por: verduras, proteínas, lácteos, otros
+- Checkbox para tachar ingredientes ya comprados (estado en localStorage)
+- Botón "Exportar como texto" genera archivo .txt descargable
+- CSS en styles/views/shopping-list.css
+
+### 24.6 Registro de agua (en dashboard.js)
+- 8 íconos de vaso en el dashboard
+- Click en vaso lo marca como bebido (color primario)
+- Estado guardado en `water_logs` con fecha de hoy
+- Carga el estado al abrir el dashboard
+- Meta visual: "X / 8 vasos"
+- Clave i18n: `dashboard.water`, `dashboard.water_goal`
+
+### 24.7 Navegación
+- Agregar ícono de recetario en el nav (ícono de libro o tenedor)
+- Ruta: `#/recipes`
+- El ícono aparece entre Historial y Settings en el nav
+
+### 24.8 Archivos nuevos a crear
+- `app/views/recipes.js`
+- `app/views/recipeDetail.js`
+- `app/views/mealPlan.js`
+- `app/views/shoppingList.js`
+- `app/services/recipesService.js`
+- `styles/views/recipe-detail.css`
+- `styles/views/meal-plan.css`
+- `styles/views/shopping-list.css`
+
+### 24.9 Claves i18n nuevas (es.json y de.json)
+- `nav.recipes`
+- `recipes.title`
+- `recipes.search`
+- `recipes.filter_all`
+- `recipes.filter_breakfast`
+- `recipes.filter_lunch`
+- `recipes.filter_snack`
+- `recipe.calories`
+- `recipe.protein`
+- `recipe.fat`
+- `recipe.carbs`
+- `recipe.servings`
+- `recipe.instructions`
+- `recipe.add_to_plan`
+- `mealplan.title`
+- `mealplan.total_calories`
+- `mealplan.generate_shopping`
+- `shopping.title`
+- `shopping.export`
+- `dashboard.water`
+- `dashboard.water_goal`
+
+### 24.10 Reglas de seguridad
+- Recetas y ingredientes son de solo lectura para usuarios autenticados
+- meal_plans, shopping_lists y water_logs usan RLS: `user_id = auth.uid()`
+- No usar innerHTML con datos de recetas — usar textContent siempre

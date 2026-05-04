@@ -17,6 +17,10 @@ import '../styles/views/dashboard.css';
 import '../styles/views/addEntry.css';
 import '../styles/views/history.css';
 import '../styles/views/settings.css';
+import '../styles/views/recipes.css';
+import '../styles/views/recipe-detail.css';
+import '../styles/views/meal-plan.css';
+import '../styles/views/shopping-list.css';
 
 import { initTheme } from './utils/theme.js';
 import { initI18n } from './utils/i18n.js';
@@ -31,14 +35,22 @@ import { mount as mountDashboard } from './views/dashboard.js';
 import { mount as mountAddEntry } from './views/addEntry.js';
 import { mount as mountHistory } from './views/history.js';
 import { mount as mountSettings } from './views/settings.js';
+import { mount as mountRecipes } from './views/recipes.js';
+import { mount as mountRecipeDetail } from './views/recipeDetail.js';
+import { mount as mountMealPlan } from './views/mealPlan.js';
+import { mount as mountShoppingList } from './views/shoppingList.js';
 
 const routes = {
-  '#/auth':      { mount: mountAuth,      protected: false, hideNav: true },
-  '#/onboarding':{ mount: mountOnboarding,protected: true,  hideNav: true },
-  '#/dashboard': { mount: mountDashboard, protected: true,  hideNav: false },
-  '#/add':       { mount: mountAddEntry,  protected: true,  hideNav: false },
-  '#/history':   { mount: mountHistory,   protected: true,  hideNav: false },
-  '#/settings':  { mount: mountSettings,  protected: true,  hideNav: false },
+  '#/auth':           { mount: mountAuth,          protected: false, hideNav: true },
+  '#/onboarding':     { mount: mountOnboarding,    protected: true,  hideNav: true },
+  '#/dashboard':      { mount: mountDashboard,     protected: true,  hideNav: false },
+  '#/add':            { mount: mountAddEntry,      protected: true,  hideNav: false },
+  '#/history':        { mount: mountHistory,       protected: true,  hideNav: false },
+  '#/settings':       { mount: mountSettings,      protected: true,  hideNav: false },
+  '#/recipes':        { mount: mountRecipes,       protected: true,  hideNav: false },
+  '#/recipe-detail':  { mount: mountRecipeDetail,  protected: true,  hideNav: false },
+  '#/meal-plan':      { mount: mountMealPlan,      protected: true,  hideNav: false },
+  '#/shopping-list':  { mount: mountShoppingList,  protected: true,  hideNav: false },
 };
 
 const appView = document.getElementById('app-view');

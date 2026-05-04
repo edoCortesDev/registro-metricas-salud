@@ -1,4 +1,5 @@
 import { getMetrics } from '../services/metricsService.js';
+import { getWaterLog, updateWaterLog } from '../services/recipesService.js';
 import { getState, setState, subscribe } from '../store/appState.js';
 import { calculateBMI, getBMICategory } from '../utils/bmi.js';
 import { generateInsights } from '../utils/insights.js';
@@ -127,11 +128,41 @@ export async function mount(container) {
   insightsSection.className = 'dashboard__insights';
   insightsSection.id = 'dashboard-insights';
 
+  // Water log section
+  const waterSection = document.createElement('div');
+  waterSection.className = 'dashboard__water';
+
+  const waterTitle = document.createElement('h2');
+  waterTitle.className = 'dashboard__section-title';
+  waterTitle.textContent = t('dashboard.water');
+
+  const waterGoal = document.createElement('p');
+  waterGoal.className = 'dashboard__water-goal';
+  waterGoal.id = 'water-goal-text';
+
+  const waterGlasses = document.createElement('div');
+  waterGlasses.className = 'dashboard__water-glasses';
+
+  for (let i = 0; i < 8; i++) {
+    const glass = document.createElement('button');
+    glass.type = 'button';
+    glass.className = 'dashboard__water-glass';
+    glass.dataset.index = String(i);
+    glass.textContent = '🥛';
+    glass.setAttribute('aria-label', `Vaso ${i + 1}`);
+    waterGlasses.appendChild(glass);
+  }
+
+  waterSection.appendChild(waterTitle);
+  waterSection.appendChild(waterGoal);
+  waterSection.appendChild(waterGlasses);
+
   section.appendChild(header);
   section.appendChild(metricsGrid);
   section.appendChild(lastRecordEl);
   section.appendChild(chartSection);
   section.appendChild(insightsSection);
+  section.appendChild(waterSection);
   container.appendChild(section);
 
   mountProfileMenu(profileMenuContainer);
@@ -188,6 +219,39 @@ export async function mount(container) {
     updateMetricCards(newMetrics, profile);
     updateInsightsSection(newMetrics, insightsSection);
     if (activeFilter !== 'custom') renderChart('metrics-chart', newMetrics, activeFilter, profile);
+  });
+
+  // --- Water log ---
+  const today = new Date().toISOString().split('T')[0];
+  let glassCount = 0;
+
+  function renderWaterGlasses() {
+    waterGlasses.querySelectorAll('.dashboard__water-glass').forEach((btn, i) => {
+      btn.classList.toggle('dashboard__water-glass--filled', i < glassCount);
+    });
+    const goalEl = document.getElementById('water-goal-text');
+    if (goalEl) goalEl.textContent = t('dashboard.water_goal', { glasses: glassCount });
+  }
+
+  try {
+    const log = await getWaterLog(today);
+    glassCount = log?.glasses ?? 0;
+  } catch {
+    glassCount = 0;
+  }
+  renderWaterGlasses();
+
+  waterGlasses.addEventListener('click', async e => {
+    const btn = e.target.closest('.dashboard__water-glass');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.index, 10);
+    glassCount = idx < glassCount ? idx : idx + 1;
+    renderWaterGlasses();
+    try {
+      await updateWaterLog(today, glassCount);
+    } catch {
+      // non-critical, state already updated visually
+    }
   });
 
   return () => {
