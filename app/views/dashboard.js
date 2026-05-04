@@ -21,16 +21,10 @@ export async function mount(container) {
   title.className = 'dashboard__title';
   title.textContent = t('dashboard.title');
 
-  const addBtn = document.createElement('a');
-  addBtn.href = '#/add';
-  addBtn.className = 'btn btn--primary btn--sm dashboard__add-btn';
-  addBtn.textContent = t('entry.add');
-
   const profileMenuContainer = document.createElement('div');
   profileMenuContainer.className = 'dashboard__profile-menu';
 
   header.appendChild(title);
-  header.appendChild(addBtn);
   header.appendChild(profileMenuContainer);
 
   // Metric cards grid
